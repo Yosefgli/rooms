@@ -86,35 +86,67 @@
         });
     }
 
-    function sendWebhook(data) {
-      showPage('page-loading');
-      fetch(webhookURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }).then(async res => {
-        if (res.status === 202) {
-          const headers = {};
-          res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-          if (headers.room) {
-            document.getElementById('room-number').innerText = headers.room;
-            showPage('page-room-result');
-          } else if (headers.status === 'accepted') {
-            showPage('page-done');
-            setTimeout(goHome, 3000);
-          } else {
-            alert('תגובה לא צפויה מהשרת');
-            goHome();
-          }
+function sendWebhook(data) {
+  showPage('page-loading');
+
+  // שלב ראשון: שולח בקשת webhook רגילה
+  fetch(webhookURL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(async res => {
+    if (res.status === 200) {
+      // קיבלנו אישור, מתחילים לבדוק כל 2 שניות אם הגיע 202
+      pollForResult(data);
+    } else {
+      alert('שגיאה: ' + res.status);
+      goHome();
+    }
+  }).catch(err => {
+    alert('שגיאה בשליחה: ' + err);
+    goHome();
+  });
+}
+
+// שלב שני: פולינג עד שמגיע 202 עם ההידרים
+function pollForResult(data, tries = 0) {
+  if (tries > 15) {  // אחרי 30 שניות בערך
+    alert("השרת לא הגיב בזמן. אנא נסה שוב.");
+    goHome();
+    return;
+  }
+
+  setTimeout(() => {
+    fetch(webhookURL + '?check=true', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(res => {
+      if (res.status === 202) {
+        const headers = {};
+        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+
+        if (headers.room) {
+          document.getElementById('room-number').innerText = headers.room;
+          showPage('page-room-result');
+        } else if (headers.status === 'accepted') {
+          showPage('page-done');
+          setTimeout(goHome, 3000);
         } else {
-          alert('שגיאה: ' + res.status);
+          alert("תגובה לא צפויה מהשרת");
           goHome();
         }
-      }).catch(err => {
-        alert('שגיאה בשליחה: ' + err);
-        goHome();
-      });
-    }
+      } else {
+        // עדיין לא מוכן – ננסה שוב
+        pollForResult(data, tries + 1);
+      }
+    }).catch(err => {
+      alert("שגיאה בבדיקה החוזרת: " + err);
+      goHome();
+    });
+  }, 2000);
+}
+
 
     // הפעלה אוטומטית
     window.onload = () => {
