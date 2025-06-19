@@ -81,15 +81,16 @@
     }
 
     function startKeyScan() {
-      showPage("page-scan-key");
-      const qrCodeScanner = new Html5Qrcode("qr-reader-key");
-      qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          qrCodeScanner.stop();
-          keyData = decodedText;
-          sendWebhook({ order: orderData, key: keyData });
-        });
-    }
+  showPage("page-scan-key");
+  const qrCodeScanner = new Html5Qrcode("qr-reader-key");
+  qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      qrCodeScanner.stop();
+      keyData = decodedText;
+      sendWebhook({ order: orderData, key: keyData, id: receivedId });
+    });
+}
+
 
     function showError(message) {
       const box = document.getElementById('error-box');
@@ -98,44 +99,50 @@
     }
 
     function sendWebhook(data) {
-      showPage('page-loading');
-      document.getElementById('error-box').innerText = ''; // נקה שגיאות קודמות
+  showPage('page-loading');
+  document.getElementById('error-box').innerText = '';
 
-      fetch(webhookURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
-      .then(async res => {
-        const body = await res.text();
-        const headers = {};
-        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+  fetch(webhookURL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(async res => {
+    const body = await res.text();
+    const headers = {};
+    res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
 
-        let debugInfo = `סטטוס: ${res.status}\n`;
-        debugInfo += `כותרות:\n${JSON.stringify(headers, null, 2)}\n`;
-        debugInfo += `גוף:\n${body}`;
+    let debugInfo = `סטטוס: ${res.status}\n`;
+    debugInfo += `כותרות:\n${JSON.stringify(headers, null, 2)}\n`;
+    debugInfo += `גוף:\n${body}`;
+    console.log(debugInfo);
+    document.getElementById('error-box').innerText = debugInfo;
 
-        console.log(debugInfo);
-        document.getElementById('error-box').innerText = debugInfo;
+    if (res.status === 202) {
+      // שמירת מזהה שהגיע מהשרת
+      if (headers.id) {
+        receivedId = headers.id;
+        console.log('ID התקבל ונשמר:', receivedId);
+      }
 
-        if (res.status === 202) {
-          if (headers.room) {
-            document.getElementById('room-number').innerText = headers.room;
-            showPage('page-room-result');
-          } else if (headers.status === 'accepted') {
-            showPage('page-done');
-            setTimeout(goHome, 3000);
-          } else {
-            showError('202 הגיע, אבל בלי נתונים צפויים (room/status)');
-          }
-        } else {
-          showError(`שגיאה: קיבלתי קוד ${res.status}`);
-        }
-      })
-      .catch(err => {
-        showError('שגיאה בתקשורת:\n' + err);
-      });
+      if (headers.room) {
+        document.getElementById('room-number').innerText = headers.room;
+        showPage('page-room-result');
+      } else if (headers.status === 'accepted') {
+        showPage('page-done');
+        setTimeout(goHome, 3000);
+      } else {
+        showError('202 הגיע, אבל בלי נתונים צפויים (room/status)');
+      }
+    } else {
+      showError(`שגיאה: קיבלתי קוד ${res.status}`);
     }
+  })
+  .catch(err => {
+    showError('שגיאה בתקשורת:\n' + err);
+  });
+}
+
 
     // הפעלה אוטומטית
     window.onload = () => {
