@@ -118,13 +118,15 @@
     console.log(debugInfo);
     document.getElementById('error-box').innerText = debugInfo;
 
-    if (res.status === 202) {
-      // שמירת מזהה שהגיע מהשרת
-      if (headers.id) {
-        receivedId = headers.id;
-        console.log('ID התקבל ונשמר:', receivedId);
-      }
+    // שמירת ID מהכותרת אם קיים
+    if (headers.id) {
+      receivedId = headers.id;
+      console.log('✅ ID התקבל ונשמר:', receivedId);
+    } else {
+      console.warn('⚠️ לא הגיע header בשם id');
+    }
 
+    if (res.status === 202) {
       if (headers.room) {
         document.getElementById('room-number').innerText = headers.room;
         showPage('page-room-result');
@@ -132,16 +134,18 @@
         showPage('page-done');
         setTimeout(goHome, 3000);
       } else {
-        showError('202 הגיע, אבל בלי נתונים צפויים (room/status)');
+        showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
       }
     } else {
-      showError(`שגיאה: קיבלתי קוד ${res.status}`);
+      showError(`❌ שגיאה: קיבלתי קוד ${res.status}`);
     }
   })
   .catch(err => {
-    showError('שגיאה בתקשורת:\n' + err);
+    showError('❌ שגיאת תקשורת:\n' + err);
+    console.error(err);
   });
 }
+
 
 
     // הפעלה אוטומטית
