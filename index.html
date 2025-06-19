@@ -57,7 +57,7 @@
   <script>
     let orderData = '';
     let keyData = '';
-    let receivedId = '';
+    let receivedId = localStorage.getItem('last-id') || ''; // נטען מראש אם קיים
 
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
@@ -69,6 +69,7 @@
     function goHome() {
       showPage("page-scan-order");
       document.getElementById('error-box').innerText = '';
+      startOrderScan();
     }
 
     function startOrderScan() {
@@ -138,11 +139,9 @@
     function startKeyScan() {
       showPage("page-scan-key");
 
-      // ניסיון לשחזר את ה־ID אם נאבד
-      if (!receivedId) {
-        receivedId = localStorage.getItem('last-id') || '';
-        console.log('🔄 משחזר ID מ־localStorage:', receivedId);
-      }
+      // טען שוב את ID למקרה ששכחנו
+      receivedId = receivedId || localStorage.getItem('last-id') || '';
+      console.log('🔁 ID מוכן לשימוש:', receivedId);
 
       const qrCodeScanner = new Html5Qrcode("qr-reader-key");
       qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
@@ -157,18 +156,17 @@
           };
 
           console.log("🚀 שולח את הבקשה השנייה עם:", JSON.stringify(payload, null, 2));
-
           sendWebhook(payload);
         });
     }
 
-    // הפעלה אוטומטית
     window.onload = () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
+      console.log('📦 loaded ID from storage (onload):', receivedId);
       startOrderScan();
-    }
+    };
   </script>
 </body>
 </html>
