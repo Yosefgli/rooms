@@ -4,174 +4,102 @@
   <meta charset="UTF-8">
   <title>סריקת ברקוד הזמנה</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1e88e5">
-  <link rel="icon" href="icon.png" type="image/png">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    :root {
-      --primary: #1e88e5;
-      --primary-dark: #1565c0;
-      --accent: #43a047;
-      --danger: #e53935;
-      --bg: #f5f7fa;
-      --white: #fff;
-      --shadow: 0 2px 8px rgba(30,136,229,0.10);
-      --radius: 18px;
-      --transition: 0.2s;
-    }
-
     body {
       font-family: 'Segoe UI', 'Alef', sans-serif;
-      background: var(--bg);
-      color: #222;
+      background: #f5f7fa;
       margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
       padding: 0;
+      text-align: center;
     }
     .container {
-      width: 100%;
       max-width: 380px;
       margin: 32px auto;
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 32px 20px 24px 20px;
-      position: relative;
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      transition: box-shadow var(--transition);
-    }
-    h1 {
-      font-size: 1.7rem;
-      color: var(--primary-dark);
-      margin-bottom: 18px;
-      margin-top: 0;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    h2 {
-      font-size: 1.2rem;
-      color: #444;
-      margin-bottom: 12px;
-      margin-top: 0;
-      font-weight: 500;
-    }
-    button {
-      background: var(--primary);
-      color: var(--white);
-      border: none;
-      border-radius: 8px;
-      padding: 12px 28px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 18px 0 0 0;
-      box-shadow: 0 1px 4px rgba(30,136,229,0.10);
-      cursor: pointer;
-      transition: background var(--transition), box-shadow var(--transition);
-      outline: none;
-      letter-spacing: 0.5px;
-    }
-    button:hover, button:focus {
-      background: var(--primary-dark);
-      box-shadow: 0 2px 12px rgba(30,136,229,0.15);
-    }
-    .secondary-btn {
-      background: var(--accent);
-      margin-right: 8px;
-    }
-    .danger-btn {
-      background: var(--danger);
+      background: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(30,136,229,0.1);
     }
     .qr-area {
       background: #e3f2fd;
+      padding: 20px;
+      margin: 16px 0;
       border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(30,136,229,0.07);
-      margin: 0 auto 18px auto;
-      padding: 18px 0;
-      width: 90%;
-      max-width: 320px;
-      min-height: 180px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
-    #error-box {
-      color: var(--danger);
-      background: #ffebee;
+    button {
+      padding: 10px 20px;
+      border: none;
       border-radius: 8px;
-      padding: 10px 14px;
-      margin-top: 18px;
-      font-weight: 600;
       font-size: 1rem;
-      white-space: pre-line;
-      box-shadow: 0 1px 4px rgba(229,57,53,0.07);
-      direction: ltr;
-      text-align: left;
-      word-break: break-all;
+      cursor: pointer;
+      margin: 10px;
+    }
+    .danger-btn {
+      background: #e53935;
+      color: #fff;
+    }
+    .secondary-btn {
+      background: #43a047;
+      color: #fff;
     }
     .result-box {
       background: #e8f5e9;
       color: #2e7d32;
+      padding: 14px;
       border-radius: 8px;
-      padding: 14px 18px;
-      margin: 18px 0 0 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      box-shadow: 0 1px 4px rgba(67,160,71,0.07);
-      text-align: center;
-      letter-spacing: 0.2px;
+      font-weight: bold;
+      margin-top: 20px;
     }
     .loader {
       border: 4px solid #e3f2fd;
-      border-top: 4px solid var(--primary);
+      border-top: 4px solid #1e88e5;
       border-radius: 50%;
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       animation: spin 1.2s linear infinite;
-      margin: 38px auto 22px auto;
+      margin: 20px auto;
     }
     @keyframes spin {
       0% { transform: rotate(0deg);}
       100% { transform: rotate(360deg);}
     }
-    @media (max-width: 500px) {
-      .container { padding: 18px 3vw 14px 3vw; min-height: 320px;}
-      h1 { font-size: 1.2rem;}
-      .qr-area { min-height: 120px;}
+    .hidden { display: none; }
+    .visible { display: block; }
+    #error-box {
+      color: #b71c1c;
+      background: #ffebee;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
   <div class="container">
 
-    <!-- דף סריקת הזמנה -->
-    <div id="page-scan-order" class="page visible">
+    <!-- סריקת הזמנה -->
+    <div id="page-scan-order" class="visible">
       <h1>סריקת ברקוד הזמנה</h1>
       <h2>אנא סרוק את הברקוד מההזמנה שלך</h2>
       <div class="qr-area">
         <div id="qr-reader-order"></div>
       </div>
+      <button onclick="startOrderScan()">📷 התחל סריקה</button>
       <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
     </div>
 
-    <!-- דף טעינה -->
-    <div id="page-loading" class="page">
+    <!-- טעינה -->
+    <div id="page-loading" class="hidden">
       <h1>טוען נתונים...</h1>
       <div class="loader"></div>
       <div id="error-box"></div>
       <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
     </div>
 
-    <!-- דף תוצאה - הצגת מספר חדר -->
-    <div id="page-room-result" class="page">
+    <!-- תוצאת חדר -->
+    <div id="page-room-result" class="hidden">
       <h1>מפתח לחדר</h1>
       <div class="result-box">
         מספר חדר: <span id="room-number" style="font-size:1.3em;"></span>
@@ -180,8 +108,8 @@
       <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
     </div>
 
-    <!-- דף סריקת מפתח -->
-    <div id="page-scan-key" class="page">
+    <!-- סריקת מפתח -->
+    <div id="page-scan-key" class="hidden">
       <h1>סריקת מפתח</h1>
       <h2>אנא סרוק את הברקוד שעל המפתח</h2>
       <div class="qr-area">
@@ -190,13 +118,11 @@
       <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
     </div>
 
-    <!-- דף סיום -->
-    <div id="page-done" class="page">
-      <h1 style="color:var(--accent);font-size:2em;">✅</h1>
-      <div class="result-box">
-        התהליך הושלם בהצלחה!
-      </div>
-      <p style="margin:18px 0 0 0;color:#555;">תועבר לדף הראשי בעוד רגע...</p>
+    <!-- סיום -->
+    <div id="page-done" class="hidden">
+      <h1 style="color:#43a047; font-size:2em;">✅</h1>
+      <div class="result-box">התהליך הושלם בהצלחה!</div>
+      <p style="color:#555;">תועבר לדף הראשי בעוד רגע...</p>
       <button class="danger-btn" onclick="goHome()">⬅ חזרה עכשיו</button>
     </div>
 
@@ -206,11 +132,14 @@
     let orderData = '';
     let keyData = '';
     let receivedId = '';
-
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
     function showPage(id) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+      document.querySelectorAll('.container > div').forEach(el => {
+        el.classList.remove('visible');
+        el.classList.add('hidden');
+      });
+      document.getElementById(id).classList.remove('hidden');
       document.getElementById(id).classList.add('visible');
     }
 
@@ -219,78 +148,32 @@
       keyData = '';
       receivedId = '';
       localStorage.removeItem('last-id');
-      showPage("page-scan-order");
+      showPage('page-scan-order');
       document.getElementById('error-box').innerText = '';
-      startOrderScan();
+      document.getElementById('qr-reader-order').innerHTML = '';
     }
 
     function startOrderScan() {
+      document.getElementById('qr-reader-order').innerHTML = '';
       if (window.qrOrderScanner) {
         window.qrOrderScanner.stop().catch(()=>{});
       }
       window.qrOrderScanner = new Html5Qrcode("qr-reader-order");
       window.qrOrderScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
         (decodedText) => {
+          if (!decodedText || typeof decodedText !== 'string' || decodedText.trim().length === 0) {
+            console.warn("סריקה ריקה או לא תקינה – מתעלם");
+            return;
+          }
           window.qrOrderScanner.stop();
           orderData = decodedText;
           sendWebhook({ order: orderData }, true);
         });
     }
 
-    function showError(message) {
-      const box = document.getElementById('error-box');
-      box.innerText = message;
-      console.error(message);
-    }
-
-    function sendWebhook(data, isFirstWebhook = false) {
-      showPage('page-loading');
-      document.getElementById('error-box').innerText = '';
-
-      fetch(webhookURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
-      .then(async res => {
-        const body = await res.text();
-        const headers = {};
-        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-
-        let debugInfo = ``;
-        if (!res.ok) {
-          debugInfo = `שגיאה: קיבלתי קוד ${res.status}\n${body}`;
-        }
-
-        // שמור את ה-id רק אם זו שליחה ראשונה
-        if (isFirstWebhook && headers.id) {
-          receivedId = headers.id;
-          localStorage.setItem('last-id', receivedId);
-        }
-
-        if (res.status === 202) {
-          if (headers.room) {
-            document.getElementById('room-number').innerText = headers.room;
-            showPage('page-room-result');
-          } else if (headers.status === 'accepted') {
-            showPage('page-done');
-            setTimeout(goHome, 3000);
-          } else {
-            showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
-          }
-        } else {
-          showError(debugInfo || `❌ שגיאה: קיבלתי קוד ${res.status}`);
-        }
-      })
-      .catch(err => {
-        showError('❌ שגיאת תקשורת:\n' + err);
-        console.error(err);
-      });
-    }
-
     function startKeyScan() {
-      showPage("page-scan-key");
-
+      showPage('page-scan-key');
+      document.getElementById('qr-reader-key').innerHTML = '';
       if (window.qrKeyScanner) {
         window.qrKeyScanner.stop().catch(()=>{});
       }
@@ -306,15 +189,49 @@
         (decodedText) => {
           window.qrKeyScanner.stop();
           keyData = decodedText;
-
-          const payload = {
-            order: orderData,
-            key: keyData,
-            id: receivedId
-          };
-
-          sendWebhook(payload, false);
+          sendWebhook({ order: orderData, key: keyData, id: receivedId }, false);
         });
+    }
+
+    function showError(message) {
+      const box = document.getElementById('error-box');
+      box.innerText = message;
+      console.error(message);
+    }
+
+    function sendWebhook(data, isFirst = false) {
+      showPage('page-loading');
+      document.getElementById('error-box').innerText = '';
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(async res => {
+        const body = await res.text();
+        const headers = {};
+        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+
+        if (isFirst && headers.id) {
+          receivedId = headers.id;
+          localStorage.setItem('last-id', receivedId);
+        }
+
+        if (res.status === 202) {
+          if (headers.room) {
+            document.getElementById('room-number').innerText = headers.room;
+            showPage('page-room-result');
+          } else if (headers.status === 'accepted') {
+            showPage('page-done');
+            setTimeout(goHome, 3000);
+          } else {
+            showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
+          }
+        } else {
+          showError(`❌ שגיאה: ${res.status}\n${body}`);
+        }
+      }).catch(err => {
+        showError('❌ שגיאת תקשורת:\n' + err);
+      });
     }
 
     window.onload = () => {
