@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>סריקת ברקוד הזמנה</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="icon.png" type="image/png">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { font-family: sans-serif; text-align: center; padding: 20px; }
-    .hidden { display: none; }
     .page { display: none; }
     .visible { display: block; }
     button { padding: 10px 20px; margin: 10px; font-size: 16px; }
@@ -14,16 +17,10 @@
 </head>
 <body>
 
-  <!-- דף ראשי -->
-  <div id="page-home" class="page visible">
+  <!-- דף סריקה ראשי -->
+  <div id="page-scan-order" class="page visible">
     <h1>סריקת ברקוד הזמנה</h1>
-    <button onclick="startScan('order')">התחל סריקה</button>
-  </div>
-
-  <!-- סריקה -->
-  <div id="page-scan" class="page">
-    <h1 id="scan-title">סריקה</h1>
-    <div id="qr-reader" style="width:300px; margin:auto;"></div>
+    <div id="qr-reader-order" style="width:300px; margin:auto;"></div>
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
@@ -34,10 +31,17 @@
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
-  <!-- תוצאה ראשונה -->
+  <!-- תוצאה -->
   <div id="page-room-result" class="page">
     <h1>מפתח לחדר מספר <span id="room-number"></span></h1>
-    <button onclick="startScan('key')">סריקת מפתח</button>
+    <button onclick="startKeyScan()">סריקת מפתח</button>
+    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
+  </div>
+
+  <!-- סריקת מפתח -->
+  <div id="page-scan-key" class="page">
+    <h1>סריקת מפתח</h1>
+    <div id="qr-reader-key" style="width:300px; margin:auto;"></div>
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
@@ -58,44 +62,40 @@
     }
 
     function goHome() {
-      orderData = '';
-      keyData = '';
-      showPage('page-home');
+      location.reload();
     }
 
-    function startScan(type) {
-      showPage('page-scan');
-      document.getElementById('scan-title').innerText = type === 'order' ? 'סריקת ברקוד הזמנה' : 'סריקת מפתח';
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      html5QrCode.start({ facingMode: "environment" }, {
-        fps: 10,
-        qrbox: 250
-      }, (decodedText) => {
-        html5QrCode.stop();
-        document.getElementById("qr-reader").innerHTML = '';
-        if (type === 'order') {
+    function startOrderScan() {
+      const qrCodeScanner = new Html5Qrcode("qr-reader-order");
+      qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          qrCodeScanner.stop();
           orderData = decodedText;
           sendWebhook({ order: orderData });
-        } else {
+        });
+    }
+
+    function startKeyScan() {
+      showPage("page-scan-key");
+      const qrCodeScanner = new Html5Qrcode("qr-reader-key");
+      qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          qrCodeScanner.stop();
           keyData = decodedText;
           sendWebhook({ order: orderData, key: keyData });
-        }
-      });
+        });
     }
 
     function sendWebhook(data) {
       showPage('page-loading');
       fetch(webhookURL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-      })
-      .then(async res => {
+      }).then(async res => {
         if (res.status === 202) {
           const headers = {};
-          res.headers.forEach((v, k) => headers[k] = v);
+          res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
           if (headers.room) {
             document.getElementById('room-number').innerText = headers.room;
             showPage('page-room-result');
@@ -107,14 +107,21 @@
             goHome();
           }
         } else {
-          alert('שגיאה בתגובה מהשרת');
+          alert('שגיאה: ' + res.status);
           goHome();
         }
-      })
-      .catch(err => {
-        alert('שגיאה בשליחת וובהוק: ' + err);
+      }).catch(err => {
+        alert('שגיאה בשליחה: ' + err);
         goHome();
       });
+    }
+
+    // הפעלה אוטומטית
+    window.onload = () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
+      }
+      startOrderScan();
     }
   </script>
 </body>
