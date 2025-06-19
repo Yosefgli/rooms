@@ -58,6 +58,7 @@
     let orderData = '';
     let keyData = '';
     let receivedId = '';
+
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
     function showPage(id) {
@@ -66,7 +67,6 @@
     }
 
     function goHome() {
-      // location.reload(); ← לא נשתמש כרגע
       showPage("page-scan-order");
       document.getElementById('error-box').innerText = '';
     }
@@ -88,69 +88,79 @@
     }
 
     function sendWebhook(data) {
-  showPage('page-loading');
-  document.getElementById('error-box').innerText = '';
+      showPage('page-loading');
+      document.getElementById('error-box').innerText = '';
 
-  fetch(webhookURL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(async res => {
-    const body = await res.text();
-    const headers = {};
-    res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(async res => {
+        const body = await res.text();
+        const headers = {};
+        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
 
-    let debugInfo = `סטטוס: ${res.status}\n`;
-    debugInfo += `כותרות:\n${JSON.stringify(headers, null, 2)}\n`;
-    debugInfo += `גוף:\n${body}`;
-    console.log(debugInfo);
-    document.getElementById('error-box').innerText = debugInfo;
+        let debugInfo = `סטטוס: ${res.status}\n`;
+        debugInfo += `כותרות:\n${JSON.stringify(headers, null, 2)}\n`;
+        debugInfo += `גוף:\n${body}`;
+        console.log(debugInfo);
+        document.getElementById('error-box').innerText = debugInfo;
 
-    // שמירת ID מהכותרת אם קיים
-    if (headers.id) {
-      receivedId = headers.id;
-      console.log('✅ ID התקבל ונשמר:', receivedId);
-    } else {
-      console.warn('⚠️ לא הגיע header בשם id');
+        if (headers.id) {
+          receivedId = headers.id;
+          localStorage.setItem('last-id', receivedId);
+          console.log('✅ ID נשמר:', receivedId);
+        } else {
+          console.warn('⚠️ לא הגיע header בשם id');
+        }
+
+        if (res.status === 202) {
+          if (headers.room) {
+            document.getElementById('room-number').innerText = headers.room;
+            showPage('page-room-result');
+          } else if (headers.status === 'accepted') {
+            showPage('page-done');
+            setTimeout(goHome, 3000);
+          } else {
+            showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
+          }
+        } else {
+          showError(`❌ שגיאה: קיבלתי קוד ${res.status}`);
+        }
+      })
+      .catch(err => {
+        showError('❌ שגיאת תקשורת:\n' + err);
+        console.error(err);
+      });
     }
 
-    if (res.status === 202) {
-      if (headers.room) {
-        document.getElementById('room-number').innerText = headers.room;
-        showPage('page-room-result');
-      } else if (headers.status === 'accepted') {
-        showPage('page-done');
-        setTimeout(goHome, 3000);
-      } else {
-        showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
+    function startKeyScan() {
+      showPage("page-scan-key");
+
+      // ניסיון לשחזר את ה־ID אם נאבד
+      if (!receivedId) {
+        receivedId = localStorage.getItem('last-id') || '';
+        console.log('🔄 משחזר ID מ־localStorage:', receivedId);
       }
-    } else {
-      showError(`❌ שגיאה: קיבלתי קוד ${res.status}`);
+
+      const qrCodeScanner = new Html5Qrcode("qr-reader-key");
+      qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          qrCodeScanner.stop();
+          keyData = decodedText;
+
+          const payload = {
+            order: orderData,
+            key: keyData,
+            id: receivedId
+          };
+
+          console.log("🚀 שולח את הבקשה השנייה עם:", JSON.stringify(payload, null, 2));
+
+          sendWebhook(payload);
+        });
     }
-  })
-  .catch(err => {
-    showError('❌ שגיאת תקשורת:\n' + err);
-    console.error(err);
-  });
-}
-
-function startKeyScan() {
-  showPage("page-scan-key");
-  const qrCodeScanner = new Html5Qrcode("qr-reader-key");
-  qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      qrCodeScanner.stop();
-      keyData = decodedText;
-
-      console.log("🔄 שולח את הקריאה השנייה עם הערכים:");
-      console.log("order:", orderData);
-      console.log("key:", keyData);
-      console.log("id:", receivedId); // ← זה מה שחשוב לראות
-
-      sendWebhook({ order: orderData, key: keyData, id: receivedId });
-    });
-}
 
     // הפעלה אוטומטית
     window.onload = () => {
