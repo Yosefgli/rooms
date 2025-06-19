@@ -87,9 +87,16 @@
     (decodedText) => {
       qrCodeScanner.stop();
       keyData = decodedText;
+
+      console.log("🔄 שולח את הקריאה השנייה עם הערכים:");
+      console.log("order:", orderData);
+      console.log("key:", keyData);
+      console.log("id:", receivedId); // ← זה מה שחשוב לראות
+
       sendWebhook({ order: orderData, key: keyData, id: receivedId });
     });
 }
+
 
 
     function showError(message) {
