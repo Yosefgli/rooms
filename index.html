@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>סריקת ברקוד הזמנה</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    .hidden { display: none; }
+    .page { display: none; }
+    .visible { display: block; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+  <!-- דף ראשי -->
+  <div id="page-home" class="page visible">
+    <h1>סריקת ברקוד הזמנה</h1>
+    <button onclick="startScan('order')">התחל סריקה</button>
+  </div>
+
+  <!-- סריקה -->
+  <div id="page-scan" class="page">
+    <h1 id="scan-title">סריקה</h1>
+    <div id="qr-reader" style="width:300px; margin:auto;"></div>
+    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
+  </div>
+
+  <!-- טעינה -->
+  <div id="page-loading" class="page">
+    <h1>טוען...</h1>
+    <p>אנא המתן</p>
+    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
+  </div>
+
+  <!-- תוצאה ראשונה -->
+  <div id="page-room-result" class="page">
+    <h1>מפתח לחדר מספר <span id="room-number"></span></h1>
+    <button onclick="startScan('key')">סריקת מפתח</button>
+    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
+  </div>
+
+  <!-- סיום -->
+  <div id="page-done" class="page">
+    <h1>✅ התהליך הושלם בהצלחה</h1>
+    <p>תועבר לדף הראשי בעוד רגע...</p>
+  </div>
+
+  <script>
+    let orderData = '';
+    let keyData = '';
+    const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+      document.getElementById(id).classList.add('visible');
+    }
+
+    function goHome() {
+      orderData = '';
+      keyData = '';
+      showPage('page-home');
+    }
+
+    function startScan(type) {
+      showPage('page-scan');
+      document.getElementById('scan-title').innerText = type === 'order' ? 'סריקת ברקוד הזמנה' : 'סריקת מפתח';
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      html5QrCode.start({ facingMode: "environment" }, {
+        fps: 10,
+        qrbox: 250
+      }, (decodedText) => {
+        html5QrCode.stop();
+        document.getElementById("qr-reader").innerHTML = '';
+        if (type === 'order') {
+          orderData = decodedText;
+          sendWebhook({ order: orderData });
+        } else {
+          keyData = decodedText;
+          sendWebhook({ order: orderData, key: keyData });
+        }
+      });
+    }
+
+    function sendWebhook(data) {
+      showPage('page-loading');
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      .then(async res => {
+        if (res.status === 202) {
+          const headers = {};
+          res.headers.forEach((v, k) => headers[k] = v);
+          if (headers.room) {
+            document.getElementById('room-number').innerText = headers.room;
+            showPage('page-room-result');
+          } else if (headers.status === 'accepted') {
+            showPage('page-done');
+            setTimeout(goHome, 3000);
+          } else {
+            alert('תגובה לא צפויה מהשרת');
+            goHome();
+          }
+        } else {
+          alert('שגיאה בתגובה מהשרת');
+          goHome();
+        }
+      })
+      .catch(err => {
+        alert('שגיאה בשליחת וובהוק: ' + err);
+        goHome();
+      });
+    }
+  </script>
+</body>
+</html>
