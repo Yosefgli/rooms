@@ -95,6 +95,11 @@ function sendWebhook(data) {
     body: JSON.stringify(data)
   })
   .then(async res => {
+    const body = await res.text();  // קולט את גוף התגובה לקריאה
+    console.log('סטטוס:', res.status);
+    console.log('כותרות:', Object.fromEntries(res.headers.entries()));
+    console.log('גוף:', body);
+
     if (res.status === 202) {
       const headers = {};
       res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
@@ -106,20 +111,19 @@ function sendWebhook(data) {
         showPage('page-done');
         setTimeout(goHome, 3000);
       } else {
-        alert('השרת ענה אבל בלי נתונים צפויים');
-        goHome();
+        alert('השרת ענה ב-202 אבל בלי headers צפויים');
       }
 
     } else {
-      alert('השרת החזיר קוד שונה מ־202: ' + res.status);
-      goHome();
+      alert(`שגיאה: קיבלתי ${res.status}, בדוק קונסול`);
     }
   })
   .catch(err => {
-    alert('שגיאה בתקשורת: ' + err);
-    goHome();
+    console.error('שגיאת תקשורת:', err);
+    alert('שגיאה בשליחה: בדוק קונסול');
   });
 }
+
 
 
 
