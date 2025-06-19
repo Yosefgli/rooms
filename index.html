@@ -5,53 +5,201 @@
   <title>סריקת ברקוד הזמנה</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#1e88e5">
   <link rel="icon" href="icon.png" type="image/png">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    .page { display: none; }
-    .visible { display: block; }
-    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
-    #error-box { color: red; white-space: pre-line; padding: 10px; font-weight: bold; }
+    :root {
+      --primary: #1e88e5;
+      --primary-dark: #1565c0;
+      --accent: #43a047;
+      --danger: #e53935;
+      --bg: #f5f7fa;
+      --white: #fff;
+      --shadow: 0 2px 8px rgba(30,136,229,0.10);
+      --radius: 18px;
+      --transition: 0.2s;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Alef', sans-serif;
+      background: var(--bg);
+      color: #222;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0;
+    }
+    .container {
+      width: 100%;
+      max-width: 380px;
+      margin: 32px auto;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 20px 24px 20px;
+      position: relative;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      transition: box-shadow var(--transition);
+    }
+    h1 {
+      font-size: 1.7rem;
+      color: var(--primary-dark);
+      margin-bottom: 18px;
+      margin-top: 0;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    h2 {
+      font-size: 1.2rem;
+      color: #444;
+      margin-bottom: 12px;
+      margin-top: 0;
+      font-weight: 500;
+    }
+    button {
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 18px 0 0 0;
+      box-shadow: 0 1px 4px rgba(30,136,229,0.10);
+      cursor: pointer;
+      transition: background var(--transition), box-shadow var(--transition);
+      outline: none;
+      letter-spacing: 0.5px;
+    }
+    button:hover, button:focus {
+      background: var(--primary-dark);
+      box-shadow: 0 2px 12px rgba(30,136,229,0.15);
+    }
+    .secondary-btn {
+      background: var(--accent);
+      margin-right: 8px;
+    }
+    .danger-btn {
+      background: var(--danger);
+    }
+    .qr-area {
+      background: #e3f2fd;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(30,136,229,0.07);
+      margin: 0 auto 18px auto;
+      padding: 18px 0;
+      width: 90%;
+      max-width: 320px;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #error-box {
+      color: var(--danger);
+      background: #ffebee;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 18px;
+      font-weight: 600;
+      font-size: 1rem;
+      white-space: pre-line;
+      box-shadow: 0 1px 4px rgba(229,57,53,0.07);
+      direction: ltr;
+      text-align: left;
+      word-break: break-all;
+    }
+    .result-box {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 18px 0 0 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(67,160,71,0.07);
+      text-align: center;
+      letter-spacing: 0.2px;
+    }
+    .loader {
+      border: 4px solid #e3f2fd;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      animation: spin 1.2s linear infinite;
+      margin: 38px auto 22px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    @media (max-width: 500px) {
+      .container { padding: 18px 3vw 14px 3vw; min-height: 320px;}
+      h1 { font-size: 1.2rem;}
+      .qr-area { min-height: 120px;}
+    }
   </style>
 </head>
 <body>
+  <div class="container">
 
-  <!-- דף סריקת הזמנה -->
-  <div id="page-scan-order" class="page visible">
-    <h1>סריקת ברקוד הזמנה</h1>
-    <div id="qr-reader-order" style="width:300px; margin:auto;"></div>
-    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
-  </div>
+    <!-- דף סריקת הזמנה -->
+    <div id="page-scan-order" class="page visible">
+      <h1>סריקת ברקוד הזמנה</h1>
+      <h2>אנא סרוק את הברקוד מההזמנה שלך</h2>
+      <div class="qr-area">
+        <div id="qr-reader-order"></div>
+      </div>
+      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+    </div>
 
-  <!-- דף טעינה -->
-  <div id="page-loading" class="page">
-    <h1>טוען...</h1>
-    <p>אנא המתן</p>
-    <div id="error-box"></div>
-    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
-  </div>
+    <!-- דף טעינה -->
+    <div id="page-loading" class="page">
+      <h1>טוען נתונים...</h1>
+      <div class="loader"></div>
+      <div id="error-box"></div>
+      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+    </div>
 
-  <!-- דף תוצאה - הצגת מספר חדר -->
-  <div id="page-room-result" class="page">
-    <h1>מפתח לחדר מספר <span id="room-number"></span></h1>
-    <button onclick="startKeyScan()">סריקת מפתח</button>
-    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
-  </div>
+    <!-- דף תוצאה - הצגת מספר חדר -->
+    <div id="page-room-result" class="page">
+      <h1>מפתח לחדר</h1>
+      <div class="result-box">
+        מספר חדר: <span id="room-number" style="font-size:1.3em;"></span>
+      </div>
+      <button class="secondary-btn" onclick="startKeyScan()">סריקת מפתח</button>
+      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+    </div>
 
-  <!-- דף סריקת מפתח -->
-  <div id="page-scan-key" class="page">
-    <h1>סריקת מפתח</h1>
-    <div id="qr-reader-key" style="width:300px; margin:auto;"></div>
-    <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
-  </div>
+    <!-- דף סריקת מפתח -->
+    <div id="page-scan-key" class="page">
+      <h1>סריקת מפתח</h1>
+      <h2>אנא סרוק את הברקוד שעל המפתח</h2>
+      <div class="qr-area">
+        <div id="qr-reader-key"></div>
+      </div>
+      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+    </div>
 
-  <!-- דף סיום -->
-  <div id="page-done" class="page">
-    <h1>✅ התהליך הושלם בהצלחה</h1>
-    <p>תועבר לדף הראשי בעוד רגע...</p>
-    <button onclick="goHome()">⬅ חזרה עכשיו</button>
+    <!-- דף סיום -->
+    <div id="page-done" class="page">
+      <h1 style="color:var(--accent);font-size:2em;">✅</h1>
+      <div class="result-box">
+        התהליך הושלם בהצלחה!
+      </div>
+      <p style="margin:18px 0 0 0;color:#555;">תועבר לדף הראשי בעוד רגע...</p>
+      <button class="danger-btn" onclick="goHome()">⬅ חזרה עכשיו</button>
+    </div>
+
   </div>
 
   <script>
@@ -67,7 +215,6 @@
     }
 
     function goHome() {
-      // איפוס כל המשתנים
       orderData = '';
       keyData = '';
       receivedId = '';
@@ -78,7 +225,6 @@
     }
 
     function startOrderScan() {
-      // איפוס סורק קודם
       if (window.qrOrderScanner) {
         window.qrOrderScanner.stop().catch(()=>{});
       }
@@ -87,7 +233,7 @@
         (decodedText) => {
           window.qrOrderScanner.stop();
           orderData = decodedText;
-          sendWebhook({ order: orderData }, true); // שליחה ראשונה
+          sendWebhook({ order: orderData }, true);
         });
     }
 
@@ -97,7 +243,6 @@
       console.error(message);
     }
 
-    // הוספתי פרמטר isFirstWebhook כדי להבדיל בין שליחה ראשונה לשנייה
     function sendWebhook(data, isFirstWebhook = false) {
       showPage('page-loading');
       document.getElementById('error-box').innerText = '';
@@ -112,17 +257,15 @@
         const headers = {};
         res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
 
-        let debugInfo = `סטטוס: ${res.status}\n`;
-        debugInfo += `כותרות:\n${JSON.stringify(headers, null, 2)}\n`;
-        debugInfo += `גוף:\n${body}`;
-        console.log(debugInfo);
-        document.getElementById('error-box').innerText = debugInfo;
+        let debugInfo = ``;
+        if (!res.ok) {
+          debugInfo = `שגיאה: קיבלתי קוד ${res.status}\n${body}`;
+        }
 
         // שמור את ה-id רק אם זו שליחה ראשונה
         if (isFirstWebhook && headers.id) {
           receivedId = headers.id;
           localStorage.setItem('last-id', receivedId);
-          console.log('✅ ID נשמר:', receivedId);
         }
 
         if (res.status === 202) {
@@ -136,7 +279,7 @@
             showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
           }
         } else {
-          showError(`❌ שגיאה: קיבלתי קוד ${res.status}`);
+          showError(debugInfo || `❌ שגיאה: קיבלתי קוד ${res.status}`);
         }
       })
       .catch(err => {
@@ -148,18 +291,15 @@
     function startKeyScan() {
       showPage("page-scan-key");
 
-      // איפוס סורק קודם
       if (window.qrKeyScanner) {
         window.qrKeyScanner.stop().catch(()=>{});
       }
 
-      // טען שוב את ID למקרה ששכחנו
       receivedId = receivedId || localStorage.getItem('last-id') || '';
       if (!receivedId) {
         showError('❌ לא נמצא ID מהשלב הראשון, יש להתחיל מהתחלה');
         return;
       }
-      console.log('🔁 ID מוכן לשימוש:', receivedId);
 
       window.qrKeyScanner = new Html5Qrcode("qr-reader-key");
       window.qrKeyScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
@@ -170,11 +310,10 @@
           const payload = {
             order: orderData,
             key: keyData,
-            id: receivedId // כאן ה-ID שנשמר מהשלב הראשון
+            id: receivedId
           };
 
-          console.log("🚀 שולח את הבקשה השנייה עם:", JSON.stringify(payload, null, 2));
-          sendWebhook(payload, false); // שליחה שנייה
+          sendWebhook(payload, false);
         });
     }
 
@@ -182,7 +321,6 @@
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
-      // תמיד נתחיל תהליך חדש
       goHome();
     };
   </script>
