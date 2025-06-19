@@ -1,7 +1,7 @@
 {
-  "name": "סריקת ברקוד הזמנה",
-  "short_name": "סריקת ברקוד",
-  "start_url": "./",
+  "name": "Сканирование штрихкода заказа",
+  "short_name": "Штрихкод",
+  "start_url": "./?nocache=",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
