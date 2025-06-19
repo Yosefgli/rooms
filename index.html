@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="ru" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <title>סריקת ברקוד הזמנה</title>
+  <title>Сканирование штрихкода заказа</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
@@ -79,137 +79,102 @@
 <body>
   <div class="container">
 
-    <!-- סריקת הזמנה -->
+    <!-- Сканирование заказа -->
     <div id="page-scan-order" class="visible">
-      <h1>סריקת ברקוד הזמנה</h1>
-      <h2>אנא סרוק את הברקוד מההזמנה שלך</h2>
+      <h1>Сканирование штрихкода заказа</h1>
+      <h2>Пожалуйста, отсканируйте штрихкод с заказа</h2>
       <div class="qr-area">
         <div id="qr-reader-order"></div>
       </div>
-      <button onclick="startOrderScan()">📷 התחל סריקה</button>
-      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+      <button onclick="startOrderScan()">📷 Начать сканирование</button>
+      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- טעינה -->
+    <!-- Загрузка -->
     <div id="page-loading" class="hidden">
-      <h1>טוען נתונים...</h1>
+      <h1>Загрузка данных...</h1>
       <div class="loader"></div>
       <div id="error-box"></div>
-      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- תוצאת חדר -->
+    <!-- Результат номера комнаты -->
     <div id="page-room-result" class="hidden">
-      <h1>מפתח לחדר</h1>
+      <h1>Ключ от комнаты</h1>
       <div class="result-box">
-        מספר חדר: <span id="room-number" style="font-size:1.3em;"></span>
+        Номер комнаты: <span id="room-number" style="font-size:1.3em;"></span>
       </div>
-      <button class="secondary-btn" onclick="startKeyScan()">סריקת מפתח</button>
-      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+      <button class="secondary-btn" onclick="startKeyScan()">Сканировать ключ</button>
+      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- סריקת מפתח -->
+    <!-- Сканирование ключа -->
     <div id="page-scan-key" class="hidden">
-      <h1>סריקת מפתח</h1>
-      <h2>אנא סרוק את הברקוד שעל המפתח</h2>
+      <h1>Сканирование ключа</h1>
+      <h2>Пожалуйста, отсканируйте штрихкод с ключа</h2>
       <div class="qr-area">
         <div id="qr-reader-key"></div>
       </div>
-      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הראשי</button>
+      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- סיום -->
+    <!-- Завершено -->
     <div id="page-done" class="hidden">
       <h1 style="color:#43a047; font-size:2em;">✅</h1>
-      <div class="result-box">התהליך הושלם בהצלחה!</div>
-      <p style="color:#555;">תועבר לדף הראשי בעוד רגע...</p>
-      <button class="danger-btn" onclick="goHome()">⬅ חזרה עכשיו</button>
+      <div class="result-box">Процесс успешно завершен!</div>
+      <p style="color:#555;">Вы будете перенаправлены на главную через несколько секунд...</p>
+      <button class="danger-btn" onclick="goHome()">⬅ Вернуться сейчас</button>
     </div>
 
   </div>
 
   <script>
-    let orderData = '';
-    let keyData = '';
-    let receivedId = '';
+    let orderData = '', keyData = '', receivedId = '';
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
     function showPage(id) {
-      document.querySelectorAll('.container > div').forEach(el => {
-        el.classList.remove('visible');
-        el.classList.add('hidden');
-      });
-      document.getElementById(id).classList.remove('hidden');
-      document.getElementById(id).classList.add('visible');
+      document.querySelectorAll('.container > div').forEach(el => el.className = 'hidden');
+      document.getElementById(id).className = 'visible';
     }
 
     function goHome() {
-      orderData = '';
-      keyData = '';
-      receivedId = '';
-      localStorage.removeItem('last-id');
-      showPage('page-scan-order');
-      document.getElementById('error-box').innerText = '';
+      orderData = keyData = receivedId = '';
+      localStorage.clear(); sessionStorage.clear();
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
       document.getElementById('qr-reader-order').innerHTML = '';
+      showPage('page-scan-order');
     }
 
     function startOrderScan() {
-      document.getElementById('qr-reader-order').innerHTML = '';
-      if (window.qrOrderScanner) {
-        window.qrOrderScanner.stop().catch(()=>{});
-      }
-      window.qrOrderScanner = new Html5Qrcode("qr-reader-order");
-      window.qrOrderScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          if (!decodedText || typeof decodedText !== 'string' || decodedText.trim().length === 0) {
-            console.warn("סריקה ריקה או לא תקינה – מתעלם");
-            return;
-          }
-          window.qrOrderScanner.stop();
-          orderData = decodedText;
+      const scanner = new Html5Qrcode("qr-reader-order");
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        text => {
+          scanner.stop();
+          orderData = text;
           sendWebhook({ order: orderData }, true);
         });
     }
 
     function startKeyScan() {
       showPage('page-scan-key');
-      document.getElementById('qr-reader-key').innerHTML = '';
-      if (window.qrKeyScanner) {
-        window.qrKeyScanner.stop().catch(()=>{});
-      }
-
-      receivedId = receivedId || localStorage.getItem('last-id') || '';
-      if (!receivedId) {
-        showError('❌ לא נמצא ID מהשלב הראשון, יש להתחיל מהתחלה');
-        return;
-      }
-
-      window.qrKeyScanner = new Html5Qrcode("qr-reader-key");
-      window.qrKeyScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          window.qrKeyScanner.stop();
-          keyData = decodedText;
+      const scanner = new Html5Qrcode("qr-reader-key");
+      receivedId = localStorage.getItem('last-id') || receivedId;
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        text => {
+          scanner.stop();
+          keyData = text;
           sendWebhook({ order: orderData, key: keyData, id: receivedId }, false);
         });
     }
 
-    function showError(message) {
-      const box = document.getElementById('error-box');
-      box.innerText = message;
-      console.error(message);
-    }
-
-    function sendWebhook(data, isFirst = false) {
+    function sendWebhook(data, isFirst) {
       showPage('page-loading');
       document.getElementById('error-box').innerText = '';
       fetch(webhookURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
       }).then(async res => {
         const body = await res.text();
-        const headers = {};
-        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+        const headers = {}; res.headers.forEach((v,k) => headers[k.toLowerCase()] = v);
 
         if (isFirst && headers.id) {
           receivedId = headers.id;
@@ -224,22 +189,25 @@
             showPage('page-done');
             setTimeout(goHome, 3000);
           } else {
-            showError('⚠️ 202 הגיע, אבל בלי נתונים צפויים (room/status)');
+            document.getElementById('error-box').innerText = '202 ללא נתונים צפויים';
           }
         } else {
-          showError(`❌ שגיאה: ${res.status}\n${body}`);
+          document.getElementById('error-box').innerText = `\u05e9\u05d2\u05d9\u05d0\u05d4: ${res.status}\n${body}`;
         }
       }).catch(err => {
-        showError('❌ שגיאת תקשורת:\n' + err);
+        document.getElementById('error-box').innerText = 'שגיאה: ' + err;
       });
     }
 
     window.onload = () => {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js');
+        navigator.serviceWorker.register('service-worker.js?v=2');
       }
-      goHome();
-    };
+      localStorage.clear(); sessionStorage.clear();
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+      showPage('page-scan-order');
+      startOrderScan();
+    }
   </script>
 </body>
 </html>
