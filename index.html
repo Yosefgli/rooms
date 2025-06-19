@@ -18,14 +18,14 @@
 </head>
 <body>
 
-  <!-- דף סריקה ראשי -->
+  <!-- דף סריקת הזמנה -->
   <div id="page-scan-order" class="page visible">
     <h1>סריקת ברקוד הזמנה</h1>
     <div id="qr-reader-order" style="width:300px; margin:auto;"></div>
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
-  <!-- טעינה -->
+  <!-- דף טעינה -->
   <div id="page-loading" class="page">
     <h1>טוען...</h1>
     <p>אנא המתן</p>
@@ -33,21 +33,21 @@
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
-  <!-- תוצאה -->
+  <!-- דף תוצאה - הצגת מספר חדר -->
   <div id="page-room-result" class="page">
     <h1>מפתח לחדר מספר <span id="room-number"></span></h1>
     <button onclick="startKeyScan()">סריקת מפתח</button>
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
-  <!-- סריקת מפתח -->
+  <!-- דף סריקת מפתח -->
   <div id="page-scan-key" class="page">
     <h1>סריקת מפתח</h1>
     <div id="qr-reader-key" style="width:300px; margin:auto;"></div>
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
-  <!-- סיום -->
+  <!-- דף סיום -->
   <div id="page-done" class="page">
     <h1>✅ התהליך הושלם בהצלחה</h1>
     <p>תועבר לדף הראשי בעוד רגע...</p>
@@ -57,7 +57,7 @@
   <script>
     let orderData = '';
     let keyData = '';
-    let receivedId = localStorage.getItem('last-id') || ''; // נטען מראש אם קיים
+    let receivedId = '';
 
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
@@ -67,18 +67,27 @@
     }
 
     function goHome() {
+      // איפוס כל המשתנים
+      orderData = '';
+      keyData = '';
+      receivedId = '';
+      localStorage.removeItem('last-id');
       showPage("page-scan-order");
       document.getElementById('error-box').innerText = '';
       startOrderScan();
     }
 
     function startOrderScan() {
-      const qrCodeScanner = new Html5Qrcode("qr-reader-order");
-      qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+      // איפוס סורק קודם
+      if (window.qrOrderScanner) {
+        window.qrOrderScanner.stop().catch(()=>{});
+      }
+      window.qrOrderScanner = new Html5Qrcode("qr-reader-order");
+      window.qrOrderScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
         (decodedText) => {
-          qrCodeScanner.stop();
+          window.qrOrderScanner.stop();
           orderData = decodedText;
-          sendWebhook({ order: orderData });
+          sendWebhook({ order: orderData }, true); // שליחה ראשונה
         });
     }
 
@@ -88,7 +97,8 @@
       console.error(message);
     }
 
-    function sendWebhook(data) {
+    // הוספתי פרמטר isFirstWebhook כדי להבדיל בין שליחה ראשונה לשנייה
+    function sendWebhook(data, isFirstWebhook = false) {
       showPage('page-loading');
       document.getElementById('error-box').innerText = '';
 
@@ -108,12 +118,11 @@
         console.log(debugInfo);
         document.getElementById('error-box').innerText = debugInfo;
 
-        if (headers.id) {
+        // שמור את ה-id רק אם זו שליחה ראשונה
+        if (isFirstWebhook && headers.id) {
           receivedId = headers.id;
           localStorage.setItem('last-id', receivedId);
           console.log('✅ ID נשמר:', receivedId);
-        } else {
-          console.warn('⚠️ לא הגיע header בשם id');
         }
 
         if (res.status === 202) {
@@ -139,24 +148,33 @@
     function startKeyScan() {
       showPage("page-scan-key");
 
+      // איפוס סורק קודם
+      if (window.qrKeyScanner) {
+        window.qrKeyScanner.stop().catch(()=>{});
+      }
+
       // טען שוב את ID למקרה ששכחנו
       receivedId = receivedId || localStorage.getItem('last-id') || '';
+      if (!receivedId) {
+        showError('❌ לא נמצא ID מהשלב הראשון, יש להתחיל מהתחלה');
+        return;
+      }
       console.log('🔁 ID מוכן לשימוש:', receivedId);
 
-      const qrCodeScanner = new Html5Qrcode("qr-reader-key");
-      qrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+      window.qrKeyScanner = new Html5Qrcode("qr-reader-key");
+      window.qrKeyScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
         (decodedText) => {
-          qrCodeScanner.stop();
+          window.qrKeyScanner.stop();
           keyData = decodedText;
 
           const payload = {
             order: orderData,
             key: keyData,
-            id: receivedId
+            id: receivedId // כאן ה-ID שנשמר מהשלב הראשון
           };
 
           console.log("🚀 שולח את הבקשה השנייה עם:", JSON.stringify(payload, null, 2));
-          sendWebhook(payload);
+          sendWebhook(payload, false); // שליחה שנייה
         });
     }
 
@@ -164,8 +182,8 @@
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
-      console.log('📦 loaded ID from storage (onload):', receivedId);
-      startOrderScan();
+      // תמיד נתחיל תהליך חדש
+      goHome();
     };
   </script>
 </body>
