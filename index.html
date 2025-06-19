@@ -13,6 +13,7 @@
     .page { display: none; }
     .visible { display: block; }
     button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    #error-box { color: red; white-space: pre-line; padding: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -28,6 +29,7 @@
   <div id="page-loading" class="page">
     <h1>טוען...</h1>
     <p>אנא המתן</p>
+    <div id="error-box"></div>
     <button onclick="goHome()">⬅ חזרה לדף הראשי</button>
   </div>
 
@@ -49,6 +51,7 @@
   <div id="page-done" class="page">
     <h1>✅ התהליך הושלם בהצלחה</h1>
     <p>תועבר לדף הראשי בעוד רגע...</p>
+    <button onclick="goHome()">⬅ חזרה עכשיו</button>
   </div>
 
   <script>
@@ -62,7 +65,9 @@
     }
 
     function goHome() {
-      location.reload();
+      // location.reload(); ← לא נשתמש כרגע
+      showPage("page-scan-order");
+      document.getElementById('error-box').innerText = '';
     }
 
     function startOrderScan() {
@@ -86,46 +91,51 @@
         });
     }
 
-function sendWebhook(data) {
-  showPage('page-loading');
-
-  fetch(webhookURL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(async res => {
-    const body = await res.text();  // קולט את גוף התגובה לקריאה
-    console.log('סטטוס:', res.status);
-    console.log('כותרות:', Object.fromEntries(res.headers.entries()));
-    console.log('גוף:', body);
-
-    if (res.status === 202) {
-      const headers = {};
-      res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-
-      if (headers.room) {
-        document.getElementById('room-number').innerText = headers.room;
-        showPage('page-room-result');
-      } else if (headers.status === 'accepted') {
-        showPage('page-done');
-        setTimeout(goHome, 3000);
-      } else {
-        alert('השרת ענה ב-202 אבל בלי headers צפויים');
-      }
-
-    } else {
-      alert(`שגיאה: קיבלתי ${res.status}, בדוק קונסול`);
+    function showError(message) {
+      const box = document.getElementById('error-box');
+      box.innerText = message;
+      console.error(message);
     }
-  })
-  .catch(err => {
-    console.error('שגיאת תקשורת:', err);
-    alert('שגיאה בשליחה: בדוק קונסול');
-  });
-}
 
+    function sendWebhook(data) {
+      showPage('page-loading');
+      document.getElementById('error-box').innerText = ''; // נקה שגיאות קודמות
 
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(async res => {
+        const body = await res.text();
+        const headers = {};
+        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
 
+        let debugInfo = `סטטוס: ${res.status}\n`;
+        debugInfo += `כותרות:\n${JSON.stringify(headers, null, 2)}\n`;
+        debugInfo += `גוף:\n${body}`;
+
+        console.log(debugInfo);
+        document.getElementById('error-box').innerText = debugInfo;
+
+        if (res.status === 202) {
+          if (headers.room) {
+            document.getElementById('room-number').innerText = headers.room;
+            showPage('page-room-result');
+          } else if (headers.status === 'accepted') {
+            showPage('page-done');
+            setTimeout(goHome, 3000);
+          } else {
+            showError('202 הגיע, אבל בלי נתונים צפויים (room/status)');
+          }
+        } else {
+          showError(`שגיאה: קיבלתי קוד ${res.status}`);
+        }
+      })
+      .catch(err => {
+        showError('שגיאה בתקשורת:\n' + err);
+      });
+    }
 
     // הפעלה אוטומטית
     window.onload = () => {
