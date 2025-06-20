@@ -9,126 +9,37 @@
   <meta http-equiv="Expires" content="0">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', 'Alef', sans-serif;
-      background: #f5f7fa;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-    .container {
-      max-width: 420px;
-      margin: 32px auto;
-      background: #fff;
-      border-radius: 18px;
-      padding: 24px;
-      box-shadow: 0 2px 10px rgba(30,136,229,0.15);
-    }
-    .qr-area {
-      background: #e3f2fd;
-      padding: 20px;
-      margin: 16px 0;
-      border-radius: 12px;
-    }
-    button {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-      margin: 8px;
-    }
-    .danger-btn {
-      background: #e53935;
-      color: #fff;
-    }
-    .secondary-btn {
-      background: #1e88e5;
-      color: #fff;
-    }
-    .success-btn {
-      background: #43a047;
-      color: #fff;
-    }
-    .done-btn {
-      background: #c8e6c9;
-      color: #2e7d32;
-      font-weight: bold;
-    }
-    .result-box {
-      background: #e8f5e9;
-      color: #2e7d32;
-      padding: 14px;
-      border-radius: 8px;
-      font-weight: bold;
-      margin-top: 20px;
-    }
-    .loader {
-      border: 4px solid #e3f2fd;
-      border-top: 4px solid #1e88e5;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1.2s linear infinite;
-      margin: 20px auto;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg);}
-      100% { transform: rotate(360deg);}
-    }
+    body { font-family: 'Segoe UI', 'Alef', sans-serif; background: #f5f7fa; margin: 0; padding: 0; text-align: center; }
+    .container { max-width: 420px; margin: 32px auto; background: #fff; border-radius: 18px; padding: 24px; box-shadow: 0 2px 10px rgba(30,136,229,0.15); }
+    .qr-area { background: #e3f2fd; padding: 20px; margin: 16px 0; border-radius: 12px; }
+    button { padding: 10px 18px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin: 8px; }
+    .danger-btn { background: #e53935; color: #fff; }
+    .secondary-btn { background: #1e88e5; color: #fff; }
+    .done-btn { background: #c8e6c9; color: #2e7d32; font-weight: bold; }
+    .loader { border: 4px solid #e3f2fd; border-top: 4px solid #1e88e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1.2s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
     .hidden { display: none; }
     .visible { display: block; }
-    #error-box {
-      color: #b71c1c;
-      background: #ffebee;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-    }
-    #room-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .room-btn {
-      min-width: 100px;
-    }
+    #error-box { color: #b71c1c; background: #ffebee; padding: 10px; margin-top: 10px; border-radius: 8px; white-space: pre-wrap; }
+    #room-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+    .room-btn { min-width: 100px; }
   </style>
 </head>
 <body>
   <div class="container">
-
-    <!-- סריקת הזמנה -->
     <div id="page-scan-order" class="visible">
       <h1>Сканирование штрихкода заказа</h1>
       <h2>Пожалуйста, отсканируйте штрихкод с заказа</h2>
-      <div class="qr-area">
-        <div id="qr-reader-order"></div>
-      </div>
+      <div class="qr-area"><div id="qr-reader-order"></div></div>
       <button onclick="startOrderScan()">📷 Начать сканирование</button>
-      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- טעינה -->
     <div id="page-loading" class="hidden">
       <h1>Загрузка данных...</h1>
       <div class="loader"></div>
       <div id="error-box"></div>
-      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- הצלחה -->
-    <div id="page-done" class="hidden">
-      <h1 style="color:#43a047; font-size:2em;">✅</h1>
-      <div class="result-box">Процесс успешно завершен!</div>
-      <p style="color:#555;">Вы будете перенаправлены на главную через несколько секунд...</p>
-      <button class="danger-btn" onclick="goHome()">⬅ Вернуться сейчас</button>
-    </div>
-
-    <!-- מסך מרובה חדרים -->
     <div id="page-multi-room" class="hidden">
       <h1>סריקת מפתחות לחדרים</h1>
       <p>בחר חדר לסריקה:</p>
@@ -138,13 +49,15 @@
       <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הבית</button>
     </div>
 
+    <div id="page-done" class="hidden">
+      <h1 style="color:#43a047; font-size:2em;">✅</h1>
+      <div class="result-box">התהליך הסתיימה!</div>
+      <p style="color:#555;">תחזר לדף הראשי בעוד דקות...</p>
+    </div>
   </div>
 
-  <!-- JavaScript -->
   <script>
-    let orderData = '';
-    let roomList = [];
-    let scannedRooms = new Set();
+    let orderData = '', roomList = [], scannedRooms = new Set();
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
     function showPage(id) {
@@ -169,10 +82,27 @@
         text => {
           scanner.stop();
           orderData = text.trim();
-          roomList = orderData.split(',').map(r => r.trim());
+          fetchRoomList(orderData);
+        });
+    }
+
+    function fetchRoomList(order) {
+      showPage('page-loading');
+      document.getElementById('error-box').innerText = '';
+      fetch(webhookURL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order })
+      }).then(async res => {
+        const headers = {}; res.headers.forEach((v,k) => headers[k.toLowerCase()] = v);
+        if (res.status === 202 && headers.room) {
+          roomList = headers.room.split(',').map(r => r.trim());
           buildRoomButtons();
           showPage('page-multi-room');
-        });
+        } else {
+          document.getElementById('error-box').innerText = 'Room list not received';
+        }
+      }).catch(err => {
+        document.getElementById('error-box').innerText = 'Error: ' + err;
+      });
     }
 
     function buildRoomButtons() {
@@ -183,7 +113,6 @@
         btn.innerText = `🔑 חדר ${room}`;
         btn.className = 'secondary-btn room-btn';
         btn.onclick = () => handleRoomScan(room, btn);
-        btn.dataset.room = room;
         container.appendChild(btn);
       });
     }
@@ -192,15 +121,11 @@
       if (scannedRooms.has(room)) return;
       document.getElementById('qr-reader-key').innerHTML = '';
       const scanner = new Html5Qrcode("qr-reader-key");
-      showPage('page-multi-room');
-      document.getElementById('error-box').innerText = '';
-
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
         text => {
           scanner.stop();
-          const keyData = text;
-          sendWebhook({ order: orderData, room: room, key: keyData }, () => {
-            document.getElementById('error-box').innerText = `שגיאה: חדר ${room} לא אומת`;
+          sendWebhook({ order: orderData, room: room, key: text }, () => {
+            document.getElementById('error-box').innerText = `שגיאה: חדר ${room}`;
           }, () => {
             scannedRooms.add(room);
             buttonEl.disabled = true;
@@ -221,23 +146,16 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       }).then(async res => {
-        const headers = {};
-        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-        if (res.status === 202 && headers.status === 'accepted') {
-          onSuccess();
-        } else {
-          onFail();
-        }
+        const headers = {}; res.headers.forEach((v,k) => headers[k.toLowerCase()] = v);
+        if (res.status === 202 && headers.status === 'accepted') onSuccess();
+        else onFail();
       }).catch(err => {
-        document.getElementById('error-box').innerText = 'שגיאה: ' + err;
+        document.getElementById('error-box').innerText = 'Error: ' + err;
         onFail();
       });
     }
 
-    window.onload = () => {
-      goHome();
-      startOrderScan();
-    }
+    window.onload = () => { goHome(); startOrderScan(); }
   </script>
 </body>
 </html>
