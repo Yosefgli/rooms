@@ -7,8 +7,6 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffffff">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
@@ -137,13 +135,6 @@
 
     function goHome() {
       orderData = keyData = receivedId = '';
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-      } catch (e) {}
-      if ('caches' in window) {
-        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-      }
       document.getElementById('qr-reader-order').innerHTML = '';
       showPage('page-scan-order');
     }
@@ -161,7 +152,6 @@
     function startKeyScan() {
       showPage('page-scan-key');
       const scanner = new Html5Qrcode("qr-reader-key");
-      receivedId = localStorage.getItem('last-id') || receivedId;
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
         text => {
           scanner.stop();
@@ -181,7 +171,6 @@
 
         if (isFirst && headers.id) {
           receivedId = headers.id;
-          localStorage.setItem('last-id', receivedId);
         }
 
         if (res.status === 202) {
@@ -203,9 +192,6 @@
     }
 
     window.onload = () => {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js?v=3');
-      }
       goHome();
       startOrderScan();
     }
