@@ -73,7 +73,9 @@
     }
 
     function goHome() {
-      if (currentScanner) currentScanner.stop();
+      if (currentScanner) {
+        try { currentScanner.stop(); } catch (e) {}
+      }
       orderData = '';
       roomList = [];
       scannedRooms = new Set();
@@ -86,7 +88,9 @@
     }
 
     function backToRooms() {
-      if (currentScanner) currentScanner.stop();
+      if (currentScanner) {
+        try { currentScanner.stop(); } catch (e) {}
+      }
       document.getElementById('qr-reader-key').innerHTML = '';
       document.getElementById('error-box').innerText = '';
       showPage('page-multi-room');
@@ -143,54 +147,61 @@
     }
 
     function startKeyScan() {
-  document.getElementById('qr-reader-key').innerHTML = '';
-  document.getElementById('error-box').innerText = '';
-  currentScanner = new Html5Qrcode("qr-reader-key");
+      document.getElementById('qr-reader-key').innerHTML = '';
+      document.getElementById('error-box').innerText = '';
+      currentScanner = new Html5Qrcode("qr-reader-key");
 
-  currentScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-    text => {
-      const scannedText = text.trim().replace(/\D/g, '');
+      currentScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        text => {
+          const scannedText = text.trim().replace(/\D/g, '');
 
-      // עצירה מיידית של הסורק כדי לא לסרוק שוב בטעות
-      currentScanner.stop().then(() => {
-        if (scannedText !== currentRoom) {
-          document.getElementById('error-box').innerText = `מפתח לא תואם לחדר ${currentRoom}, נסה שוב.`;
-          
-          setTimeout(() => {
-            document.getElementById('qr-reader-key').innerHTML = '';
-            backToRooms();
-          }, 2000);
-          return;
-        }
-
-        sendWebhook({ order: orderData, room: currentRoom, key: scannedText }, () => {
-          document.getElementById('error-box').innerText = `שגיאה בשליחה עבור חדר ${currentRoom}`;
-          setTimeout(() => {
-            document.getElementById('qr-reader-key').innerHTML = '';
-            backToRooms();
-          }, 2000);
-        }, () => {
-          scannedRooms.add(currentRoom);
-          const buttons = document.querySelectorAll('.room-btn');
-          buttons.forEach(btn => {
-            if (btn.innerText === currentRoom) {
-              btn.disabled = true;
-              btn.innerText = `✅ ${currentRoom}`;
-              btn.className = 'done-btn room-btn';
-            }
-          });
-          if (scannedRooms.size === roomList.length) {
-            showPage('page-done');
-            setTimeout(goHome, 3000);
-          } else {
-            document.getElementById('qr-reader-key').innerHTML = '';
-            backToRooms();
+          try {
+            currentScanner.stop().then(() => {
+              handleKeyScanResult(scannedText);
+            }).catch(() => {
+              handleKeyScanResult(scannedText);
+            });
+          } catch (e) {
+            handleKeyScanResult(scannedText);
           }
         });
-      });
-    });
-}
+    }
 
+    function handleKeyScanResult(scannedText) {
+      if (scannedText !== currentRoom) {
+        document.getElementById('error-box').innerText = `מפתח לא תואם לחדר ${currentRoom}, נסה שוב.`;
+        setTimeout(() => {
+          document.getElementById('qr-reader-key').innerHTML = '';
+          backToRooms();
+        }, 2000);
+        return;
+      }
+
+      sendWebhook({ order: orderData, room: currentRoom, key: scannedText }, () => {
+        document.getElementById('error-box').innerText = `שגיאה בשליחה עבור חדר ${currentRoom}`;
+        setTimeout(() => {
+          document.getElementById('qr-reader-key').innerHTML = '';
+          backToRooms();
+        }, 2000);
+      }, () => {
+        scannedRooms.add(currentRoom);
+        const buttons = document.querySelectorAll('.room-btn');
+        buttons.forEach(btn => {
+          if (btn.innerText === currentRoom) {
+            btn.disabled = true;
+            btn.innerText = `✅ ${currentRoom}`;
+            btn.className = 'done-btn room-btn';
+          }
+        });
+        if (scannedRooms.size === roomList.length) {
+          showPage('page-done');
+          setTimeout(goHome, 3000);
+        } else {
+          document.getElementById('qr-reader-key').innerHTML = '';
+          backToRooms();
+        }
+      });
+    }
 
     function sendWebhook(data, onFail = () => {}, onSuccess = () => {}) {
       fetch(webhookURL, {
