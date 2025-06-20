@@ -1,29 +1,37 @@
 // service-worker.js
 
 self.addEventListener("install", function (event) {
-  // מיידי – לא מחכה לגרסה קודמת
-  self.skipWaiting();
+  console.log("🔧 Installing service worker...");
+  self.skipWaiting(); // מתקין מיידית
 });
 
 self.addEventListener("activate", function (event) {
-  // מוחק את כל הקאש
+  console.log("✅ Activating new service worker...");
   event.waitUntil(
     caches.keys().then(function (cacheNames) {
       return Promise.all(
         cacheNames.map(function (cacheName) {
+          console.log("🧹 Deleting cache:", cacheName);
           return caches.delete(cacheName);
         })
       );
     })
   );
-  self.clients.claim();
+  self.clients.claim(); // תופס שליטה מיידית
 });
 
 self.addEventListener("fetch", function (event) {
-  // תמיד יביא מהשרת – בלי cache
+  // תמיד מושך מהשרת - ללא cache
   event.respondWith(
-    fetch(event.request, { cache: "no-store" }).catch(function () {
-      return new Response("Offline", { status: 503, statusText: "Offline" });
-    })
+    fetch(event.request, { cache: "no-store" })
+      .then(response => {
+        return response;
+      })
+      .catch(() => {
+        return new Response(
+          "<h1>אין חיבור לאינטרנט</h1><p>נסה שוב מאוחר יותר</p>",
+          { status: 503, headers: { "Content-Type": "text/html" } }
+        );
+      })
   );
 });
