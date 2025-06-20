@@ -17,12 +17,12 @@
       text-align: center;
     }
     .container {
-      max-width: 380px;
+      max-width: 420px;
       margin: 32px auto;
       background: #fff;
       border-radius: 18px;
       padding: 24px;
-      box-shadow: 0 2px 8px rgba(30,136,229,0.1);
+      box-shadow: 0 2px 10px rgba(30,136,229,0.15);
     }
     .qr-area {
       background: #e3f2fd;
@@ -31,20 +31,29 @@
       border-radius: 12px;
     }
     button {
-      padding: 10px 20px;
+      padding: 10px 18px;
       border: none;
       border-radius: 8px;
       font-size: 1rem;
       cursor: pointer;
-      margin: 10px;
+      margin: 8px;
     }
     .danger-btn {
       background: #e53935;
       color: #fff;
     }
     .secondary-btn {
+      background: #1e88e5;
+      color: #fff;
+    }
+    .success-btn {
       background: #43a047;
       color: #fff;
+    }
+    .done-btn {
+      background: #c8e6c9;
+      color: #2e7d32;
+      font-weight: bold;
     }
     .result-box {
       background: #e8f5e9;
@@ -77,10 +86,22 @@
       border-radius: 8px;
       white-space: pre-wrap;
     }
+    #room-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .room-btn {
+      min-width: 100px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+
+    <!-- סריקת הזמנה -->
     <div id="page-scan-order" class="visible">
       <h1>Сканирование штрихкода заказа</h1>
       <h2>Пожалуйста, отсканируйте штрихкод с заказа</h2>
@@ -91,6 +112,7 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
+    <!-- טעינה -->
     <div id="page-loading" class="hidden">
       <h1>Загрузка данных...</h1>
       <div class="loader"></div>
@@ -98,15 +120,17 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
+    <!-- תוצאה רגילה -->
     <div id="page-room-result" class="hidden">
       <h1>Ключ от комнаты</h1>
       <div class="result-box">
         Номер комнаты: <span id="room-number" style="font-size:1.3em;"></span>
       </div>
-      <button class="secondary-btn" onclick="startKeyScan()">Сканировать ключ</button>
+      <button class="success-btn" onclick="startKeyScan()">Сканировать ключ</button>
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
+    <!-- סריקת מפתח רגילה -->
     <div id="page-scan-key" class="hidden">
       <h1>Сканирование ключа</h1>
       <h2>Пожалуйста, отсканируйте штрихкод с ключа</h2>
@@ -116,130 +140,159 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
+    <!-- מצב הצלחה -->
     <div id="page-done" class="hidden">
       <h1 style="color:#43a047; font-size:2em;">✅</h1>
       <div class="result-box">Процесс успешно завершен!</div>
       <p style="color:#555;">Вы будете перенаправлены на главную через несколько секунд...</p>
       <button class="danger-btn" onclick="goHome()">⬅ Вернуться сейчас</button>
     </div>
+
+    <!-- מסך מרובה חדרים -->
+    <div id="page-multi-room" class="hidden">
+      <h1>סריקת מפתחות לחדרים</h1>
+      <p>בחר חדר לסריקה:</p>
+      <div id="room-buttons"></div>
+      <div id="qr-reader-key" style="margin-top: 20px;"></div>
+      <div id="error-box"></div>
+      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הבית</button>
+    </div>
+
   </div>
 
+  <!-- JavaScript -->
   <script>
-  let orderData = '';
-  let roomList = [];
-  let idList = [];
-  let count = 0;
-  let scanIndex = 0;
-  let keyData = '';
-  const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
+    let orderData = '';
+    let roomList = [];
+    let scannedRooms = new Set();
+    const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
-  function showPage(id) {
-    document.querySelectorAll('.container > div').forEach(el => el.className = 'hidden');
-    document.getElementById(id).className = 'visible';
-  }
+    function showPage(id) {
+      document.querySelectorAll('.container > div').forEach(el => el.className = 'hidden');
+      document.getElementById(id).className = 'visible';
+    }
 
-  function goHome() {
-    orderData = '';
-    roomList = [];
-    idList = [];
-    count = 0;
-    scanIndex = 0;
-    keyData = '';
-    document.getElementById('qr-reader-order').innerHTML = '';
-    document.getElementById('qr-reader-key').innerHTML = '';
-    showPage('page-scan-order');
-  }
+    function goHome() {
+      orderData = '';
+      roomList = [];
+      scannedRooms = new Set();
+      document.getElementById('qr-reader-order').innerHTML = '';
+      document.getElementById('qr-reader-key').innerHTML = '';
+      document.getElementById('room-buttons').innerHTML = '';
+      document.getElementById('error-box').innerText = '';
+      showPage('page-scan-order');
+    }
 
-  function startOrderScan() {
-    const scanner = new Html5Qrcode("qr-reader-order");
-    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-      text => {
-        scanner.stop();
-        orderData = text;
-        sendWebhook({ order: orderData }, true);
-      });
-  }
-
-  function startKeyScan() {
-    showPage('page-scan-key');
-    document.getElementById('qr-reader-key').innerHTML = '';
-    const scanner = new Html5Qrcode("qr-reader-key");
-
-    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-      text => {
-        scanner.stop();
-        keyData = text;
-
-        const payload = {
-          order: orderData,
-          key: keyData,
-          id: idList[scanIndex],
-          room: roomList[scanIndex]
-        };
-
-        sendWebhook(payload, false, () => {
+    function startOrderScan() {
+      const scanner = new Html5Qrcode("qr-reader-order");
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        text => {
           scanner.stop();
-          startKeyScan(); // נסה שוב
-        });
-      });
-  }
+          orderData = text.trim();
 
-  function sendWebhook(data, isFirst, retryCallback = null) {
-    showPage('page-loading');
-    document.getElementById('error-box').innerText = '';
-
-    fetch(webhookURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).then(async res => {
-      const body = await res.text();
-      const headers = {};
-      res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-
-      if (isFirst) {
-        if (headers.room && headers.id && headers.count) {
-          roomList = headers.room.split(',').map(s => s.trim());
-          idList = headers.id.split(',').map(s => s.trim());
-          count = parseInt(headers.count, 10) || 0;
-
-          if (roomList.length !== count || idList.length !== count) {
-            document.getElementById('error-box').innerText = 'שגיאה: מספר החדרים, האיידים או ה-count לא תואמים.';
-            return;
-          }
-
-          scanIndex = 0;
-          document.getElementById('room-number').innerText = roomList[scanIndex];
-          showPage('page-room-result');
-        } else {
-          document.getElementById('error-box').innerText = 'שגיאה: לא התקבלו כל הנתונים הדרושים מה־Webhook.';
-        }
-      } else {
-        if (res.status === 202 && headers.status === 'accepted') {
-          scanIndex++;
-          if (scanIndex < count) {
-            document.getElementById('room-number').innerText = roomList[scanIndex];
-            showPage('page-room-result');
+          if (orderData.includes(',')) {
+            roomList = orderData.split(',').map(r => r.trim());
+            buildRoomButtons();
+            showPage('page-multi-room');
           } else {
+            sendWebhook({ order: orderData }, true);
+          }
+        });
+    }
+
+    function buildRoomButtons() {
+      const container = document.getElementById('room-buttons');
+      container.innerHTML = '';
+      roomList.forEach(room => {
+        const btn = document.createElement('button');
+        btn.innerText = `🔑 חדר ${room}`;
+        btn.className = 'secondary-btn room-btn';
+        btn.onclick = () => handleRoomScan(room, btn);
+        btn.dataset.room = room;
+        container.appendChild(btn);
+      });
+    }
+
+    function handleRoomScan(room, buttonEl) {
+      if (scannedRooms.has(room)) return;
+      document.getElementById('qr-reader-key').innerHTML = '';
+      const scanner = new Html5Qrcode("qr-reader-key");
+      showPage('page-multi-room');
+      document.getElementById('error-box').innerText = '';
+
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        text => {
+          scanner.stop();
+          const keyData = text;
+          sendWebhook({ order: orderData, room: room, key: keyData }, false, () => {
+            document.getElementById('error-box').innerText = `שגיאה: חדר ${room} לא אומת`;
+          }, () => {
+            scannedRooms.add(room);
+            buttonEl.disabled = true;
+            buttonEl.innerText = `✅ חדר ${room}`;
+            buttonEl.className = 'done-btn room-btn';
+            document.getElementById('qr-reader-key').innerHTML = '';
+            if (scannedRooms.size === roomList.length) {
+              showPage('page-done');
+              setTimeout(goHome, 3000);
+            }
+          });
+        });
+    }
+
+    function startKeyScan() {
+      showPage('page-scan-key');
+      document.getElementById('qr-reader-key').innerHTML = '';
+      const scanner = new Html5Qrcode("qr-reader-key");
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        text => {
+          scanner.stop();
+          sendWebhook({ order: orderData, key: text }, false, () => {
+            document.getElementById('error-box').innerText = 'שגיאה בסריקה';
+          }, () => {
             showPage('page-done');
             setTimeout(goHome, 3000);
+          });
+        });
+    }
+
+    function sendWebhook(data, isFirst, onFail = () => {}, onSuccess = () => {}) {
+      showPage(isFirst ? 'page-loading' : 'page-multi-room');
+      document.getElementById('error-box').innerText = '';
+
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(async res => {
+        const body = await res.text();
+        const headers = {};
+        res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
+
+        if (isFirst) {
+          if (res.status === 202 && headers.room) {
+            document.getElementById('room-number').innerText = headers.room;
+            showPage('page-room-result');
+          } else {
+            document.getElementById('error-box').innerText = `שגיאה: לא התקבלו פרטים`;
           }
         } else {
-          document.getElementById('error-box').innerText = `שגיאה: לא התקבלה תשובת אישור\n${res.status} ${body}`;
-          if (retryCallback) retryCallback();
+          if (res.status === 202 && headers.status === 'accepted') {
+            onSuccess();
+          } else {
+            onFail();
+          }
         }
-      }
-    }).catch(err => {
-      document.getElementById('error-box').innerText = 'שגיאה: ' + err;
-      if (retryCallback) retryCallback();
-    });
-  }
+      }).catch(err => {
+        document.getElementById('error-box').innerText = 'שגיאה: ' + err;
+        onFail();
+      });
+    }
 
-  window.onload = () => {
-    goHome();
-    startOrderScan();
-  }
-</script>
-
+    window.onload = () => {
+      goHome();
+      startOrderScan();
+    }
+  </script>
 </body>
 </html>
