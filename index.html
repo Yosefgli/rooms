@@ -120,27 +120,7 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- תוצאה רגילה -->
-    <div id="page-room-result" class="hidden">
-      <h1>Ключ от комнаты</h1>
-      <div class="result-box">
-        Номер комнаты: <span id="room-number" style="font-size:1.3em;"></span>
-      </div>
-      <button class="success-btn" onclick="startKeyScan()">Сканировать ключ</button>
-      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
-    </div>
-
-    <!-- סריקת מפתח רגילה -->
-    <div id="page-scan-key" class="hidden">
-      <h1>Сканирование ключа</h1>
-      <h2>Пожалуйста, отсканируйте штрихкод с ключа</h2>
-      <div class="qr-area">
-        <div id="qr-reader-key"></div>
-      </div>
-      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
-    </div>
-
-    <!-- מצב הצלחה -->
+    <!-- הצלחה -->
     <div id="page-done" class="hidden">
       <h1 style="color:#43a047; font-size:2em;">✅</h1>
       <div class="result-box">Процесс успешно завершен!</div>
@@ -184,17 +164,16 @@
     }
 
     function startOrderScan() {
-  const scanner = new Html5Qrcode("qr-reader-order");
-  scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-    text => {
-      scanner.stop();
-      orderData = text.trim();
-      roomList = orderData.split(',').map(r => r.trim());
-      buildRoomButtons();
-      showPage('page-multi-room');
-    });
-}
-
+      const scanner = new Html5Qrcode("qr-reader-order");
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        text => {
+          scanner.stop();
+          orderData = text.trim();
+          roomList = orderData.split(',').map(r => r.trim());
+          buildRoomButtons();
+          showPage('page-multi-room');
+        });
+    }
 
     function buildRoomButtons() {
       const container = document.getElementById('room-buttons');
@@ -220,7 +199,7 @@
         text => {
           scanner.stop();
           const keyData = text;
-          sendWebhook({ order: orderData, room: room, key: keyData }, false, () => {
+          sendWebhook({ order: orderData, room: room, key: keyData }, () => {
             document.getElementById('error-box').innerText = `שגיאה: חדר ${room} לא אומת`;
           }, () => {
             scannedRooms.add(room);
@@ -236,48 +215,18 @@
         });
     }
 
-    function startKeyScan() {
-      showPage('page-scan-key');
-      document.getElementById('qr-reader-key').innerHTML = '';
-      const scanner = new Html5Qrcode("qr-reader-key");
-      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-        text => {
-          scanner.stop();
-          sendWebhook({ order: orderData, key: text }, false, () => {
-            document.getElementById('error-box').innerText = 'שגיאה בסריקה';
-          }, () => {
-            showPage('page-done');
-            setTimeout(goHome, 3000);
-          });
-        });
-    }
-
-    function sendWebhook(data, isFirst, onFail = () => {}, onSuccess = () => {}) {
-      showPage(isFirst ? 'page-loading' : 'page-multi-room');
-      document.getElementById('error-box').innerText = '';
-
+    function sendWebhook(data, onFail = () => {}, onSuccess = () => {}) {
       fetch(webhookURL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       }).then(async res => {
-        const body = await res.text();
         const headers = {};
         res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
-
-        if (isFirst) {
-          if (res.status === 202 && headers.room) {
-            document.getElementById('room-number').innerText = headers.room;
-            showPage('page-room-result');
-          } else {
-            document.getElementById('error-box').innerText = `שגיאה: לא התקבלו פרטים`;
-          }
+        if (res.status === 202 && headers.status === 'accepted') {
+          onSuccess();
         } else {
-          if (res.status === 202 && headers.status === 'accepted') {
-            onSuccess();
-          } else {
-            onFail();
-          }
+          onFail();
         }
       }).catch(err => {
         document.getElementById('error-box').innerText = 'שגיאה: ' + err;
