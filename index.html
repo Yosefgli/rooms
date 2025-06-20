@@ -41,24 +41,24 @@
     </div>
 
     <div id="page-multi-room" class="hidden">
-      <h1>סריקת מפתחות לחדרים</h1>
-      <p>בחר חדר לסריקה:</p>
+      <h1>Сканирование ключей от комнат</h1>
+      <p>Выберите комнату для сканирования:</p>
       <div id="room-buttons"></div>
       <div id="error-box"></div>
-      <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הבית</button>
+      <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
     <div id="page-scan-key" class="hidden">
-      <h1 id="scan-key-title">סרוק מפתח לחדר</h1>
+      <h1 id="scan-key-title">Сканируйте ключ от комнаты</h1>
       <div class="qr-area"><div id="qr-reader-key"></div></div>
       <div id="error-box"></div>
-      <button class="danger-btn" onclick="backToRooms()">⬅ חזרה לרשימת החדרים</button>
+      <button class="danger-btn" onclick="backToRooms()">⬅ Назад к списку комнат</button>
     </div>
 
     <div id="page-done" class="hidden">
       <h1 style="color:#43a047; font-size:2em;">✅</h1>
-      <div class="result-box">התהליך הסתיים!</div>
-      <p style="color:#555;">תחזור לדף הראשי בעוד דקות ספורות...</p>
+      <div class="result-box">Процесс завершён!</div>
+      <p style="color:#555;">Вы будете перенаправлены на главную через несколько секунд...</p>
     </div>
   </div>
 
@@ -121,10 +121,10 @@
           buildRoomButtons();
           showPage('page-multi-room');
         } else {
-          document.getElementById('error-box').innerText = 'Room list not received';
+          document.getElementById('error-box').innerText = 'Список комнат не получен';
         }
       }).catch(err => {
-        document.getElementById('error-box').innerText = 'Error: ' + err;
+        document.getElementById('error-box').innerText = 'Ошибка: ' + err;
       });
     }
 
@@ -138,7 +138,7 @@
         btn.onclick = () => {
           if (scannedRooms.has(room)) return;
           currentRoom = room;
-          document.getElementById('scan-key-title').innerText = `סרוק מפתח לחדר ${room}`;
+          document.getElementById('scan-key-title').innerText = `Сканируйте ключ от комнаты ${room}`;
           showPage('page-scan-key');
           startKeyScan();
         };
@@ -169,7 +169,7 @@
 
     function handleKeyScanResult(scannedText) {
       if (scannedText !== currentRoom) {
-        document.getElementById('error-box').innerText = `מפתח לא תואם לחדר ${currentRoom}, נסה שוב.`;
+        document.getElementById('error-box').innerText = `Ключ не соответствует комнате ${currentRoom}, попробуйте снова.`;
         setTimeout(() => {
           document.getElementById('qr-reader-key').innerHTML = '';
           backToRooms();
@@ -178,7 +178,7 @@
       }
 
       sendWebhook({ order: orderData, room: currentRoom, key: scannedText }, () => {
-        document.getElementById('error-box').innerText = `שגיאה בשליחה עבור חדר ${currentRoom}`;
+        document.getElementById('error-box').innerText = `Ошибка при отправке для комнаты ${currentRoom}`;
         setTimeout(() => {
           document.getElementById('qr-reader-key').innerHTML = '';
           backToRooms();
@@ -213,7 +213,7 @@
         if (res.status === 202 && headers.status === 'accepted') onSuccess();
         else onFail();
       }).catch(err => {
-        document.getElementById('error-box').innerText = 'Error: ' + err;
+        document.getElementById('error-box').innerText = 'Ошибка: ' + err;
         onFail();
       });
     }
