@@ -125,76 +125,121 @@
   </div>
 
   <script>
-    let orderData = '', keyData = '', receivedId = '';
-    const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
+  let orderData = '';
+  let roomList = [];
+  let idList = [];
+  let count = 0;
+  let scanIndex = 0;
+  let keyData = '';
+  const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
-    function showPage(id) {
-      document.querySelectorAll('.container > div').forEach(el => el.className = 'hidden');
-      document.getElementById(id).className = 'visible';
-    }
+  function showPage(id) {
+    document.querySelectorAll('.container > div').forEach(el => el.className = 'hidden');
+    document.getElementById(id).className = 'visible';
+  }
 
-    function goHome() {
-      orderData = keyData = receivedId = '';
-      document.getElementById('qr-reader-order').innerHTML = '';
-      showPage('page-scan-order');
-    }
+  function goHome() {
+    orderData = '';
+    roomList = [];
+    idList = [];
+    count = 0;
+    scanIndex = 0;
+    keyData = '';
+    document.getElementById('qr-reader-order').innerHTML = '';
+    document.getElementById('qr-reader-key').innerHTML = '';
+    showPage('page-scan-order');
+  }
 
-    function startOrderScan() {
-      const scanner = new Html5Qrcode("qr-reader-order");
-      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-        text => {
+  function startOrderScan() {
+    const scanner = new Html5Qrcode("qr-reader-order");
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+      text => {
+        scanner.stop();
+        orderData = text;
+        sendWebhook({ order: orderData }, true);
+      });
+  }
+
+  function startKeyScan() {
+    showPage('page-scan-key');
+    document.getElementById('qr-reader-key').innerHTML = '';
+    const scanner = new Html5Qrcode("qr-reader-key");
+
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+      text => {
+        scanner.stop();
+        keyData = text;
+
+        const payload = {
+          order: orderData,
+          key: keyData,
+          id: idList[scanIndex],
+          room: roomList[scanIndex]
+        };
+
+        sendWebhook(payload, false, () => {
           scanner.stop();
-          orderData = text;
-          sendWebhook({ order: orderData }, true);
+          startKeyScan(); // נסה שוב
         });
-    }
+      });
+  }
 
-    function startKeyScan() {
-      showPage('page-scan-key');
-      const scanner = new Html5Qrcode("qr-reader-key");
-      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-        text => {
-          scanner.stop();
-          keyData = text;
-          sendWebhook({ order: orderData, key: keyData, id: receivedId }, false);
-        });
-    }
+  function sendWebhook(data, isFirst, retryCallback = null) {
+    showPage('page-loading');
+    document.getElementById('error-box').innerText = '';
 
-    function sendWebhook(data, isFirst) {
-      showPage('page-loading');
-      document.getElementById('error-box').innerText = '';
-      fetch(webhookURL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
-      }).then(async res => {
-        const body = await res.text();
-        const headers = {}; res.headers.forEach((v,k) => headers[k.toLowerCase()] = v);
+    fetch(webhookURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(async res => {
+      const body = await res.text();
+      const headers = {};
+      res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
 
-        if (isFirst && headers.id) {
-          receivedId = headers.id;
+      if (isFirst) {
+        if (headers.room && headers.id && headers.count) {
+          roomList = headers.room.split(',').map(s => s.trim());
+          idList = headers.id.split(',').map(s => s.trim());
+          count = parseInt(headers.count, 10) || 0;
+
+          if (roomList.length !== count || idList.length !== count) {
+            document.getElementById('error-box').innerText = 'שגיאה: מספר החדרים, האיידים או ה-count לא תואמים.';
+            return;
+          }
+
+          scanIndex = 0;
+          document.getElementById('room-number').innerText = roomList[scanIndex];
+          showPage('page-room-result');
+        } else {
+          document.getElementById('error-box').innerText = 'שגיאה: לא התקבלו כל הנתונים הדרושים מה־Webhook.';
         }
-
-        if (res.status === 202) {
-          if (headers.room) {
-            document.getElementById('room-number').innerText = headers.room;
+      } else {
+        if (res.status === 202 && headers.status === 'accepted') {
+          scanIndex++;
+          if (scanIndex < count) {
+            document.getElementById('room-number').innerText = roomList[scanIndex];
             showPage('page-room-result');
-          } else if (headers.status === 'accepted') {
+          } else {
             showPage('page-done');
             setTimeout(goHome, 3000);
-          } else {
-            document.getElementById('error-box').innerText = '202 без ожидаемых данных';
           }
         } else {
-          document.getElementById('error-box').innerText = `Ошибка: ${res.status}\n${body}`;
+          document.getElementById('error-box').innerText = `שגיאה: לא התקבלה תשובת אישור\n${res.status} ${body}`;
+          if (retryCallback) retryCallback();
         }
-      }).catch(err => {
-        document.getElementById('error-box').innerText = 'Ошибка: ' + err;
-      });
-    }
+      }
+    }).catch(err => {
+      document.getElementById('error-box').innerText = 'שגיאה: ' + err;
+      if (retryCallback) retryCallback();
+    });
+  }
 
-    window.onload = () => {
-      goHome();
-      startOrderScan();
-    }
-  </script>
+  window.onload = () => {
+    goHome();
+    startOrderScan();
+  }
+</script>
+
 </body>
 </html>
