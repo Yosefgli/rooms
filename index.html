@@ -108,9 +108,12 @@
       fetch(webhookURL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order })
       }).then(async res => {
-        const headers = {}; res.headers.forEach((v,k) => headers[k.toLowerCase()] = v);
+        const headers = {}; res.headers.forEach((v, k) => headers[k.toLowerCase()] = v);
         if (res.status === 202 && headers.room) {
-          roomList = headers.room.split(',').map(r => r.trim());
+          roomList = headers.room
+            .split(',')
+            .map(r => r.trim().replace(/\D/g, ''))
+            .filter(r => r.length > 0);
           buildRoomButtons();
           showPage('page-multi-room');
         } else {
@@ -146,13 +149,15 @@
       currentScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
         text => {
           currentScanner.stop();
-          const scannedText = text.trim();
+          const scannedText = text.trim().replace(/\D/g, '');
           if (scannedText !== currentRoom) {
             document.getElementById('error-box').innerText = `מפתח לא תואם לחדר ${currentRoom}, נסה שוב.`;
+            setTimeout(backToRooms, 2000);
             return;
           }
           sendWebhook({ order: orderData, room: currentRoom, key: scannedText }, () => {
-            document.getElementById('error-box').innerText = `שגיאה: חדר ${currentRoom}`;
+            document.getElementById('error-box').innerText = `שגיאה בשליחה עבור חדר ${currentRoom}`;
+            setTimeout(backToRooms, 2000);
           }, () => {
             scannedRooms.add(currentRoom);
             const buttons = document.querySelectorAll('.room-btn');
