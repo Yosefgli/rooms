@@ -184,21 +184,17 @@
     }
 
     function startOrderScan() {
-      const scanner = new Html5Qrcode("qr-reader-order");
-      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
-        text => {
-          scanner.stop();
-          orderData = text.trim();
+  const scanner = new Html5Qrcode("qr-reader-order");
+  scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+    text => {
+      scanner.stop();
+      orderData = text.trim();
+      roomList = orderData.split(',').map(r => r.trim());
+      buildRoomButtons();
+      showPage('page-multi-room');
+    });
+}
 
-          if (orderData.includes(',')) {
-            roomList = orderData.split(',').map(r => r.trim());
-            buildRoomButtons();
-            showPage('page-multi-room');
-          } else {
-            sendWebhook({ order: orderData }, true);
-          }
-        });
-    }
 
     function buildRoomButtons() {
       const container = document.getElementById('room-buttons');
