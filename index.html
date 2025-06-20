@@ -44,9 +44,15 @@
       <h1>סריקת מפתחות לחדרים</h1>
       <p>בחר חדר לסריקה:</p>
       <div id="room-buttons"></div>
-      <div id="qr-reader-key" style="margin-top: 20px;"></div>
       <div id="error-box"></div>
       <button class="danger-btn" onclick="goHome()">⬅ חזרה לדף הבית</button>
+    </div>
+
+    <div id="page-scan-key" class="hidden">
+      <h1 id="scan-key-title">סרוק מפתח לחדר</h1>
+      <div class="qr-area"><div id="qr-reader-key"></div></div>
+      <div id="error-box"></div>
+      <button class="danger-btn" onclick="backToRooms()">⬅ חזרה לרשימת החדרים</button>
     </div>
 
     <div id="page-done" class="hidden">
@@ -58,6 +64,7 @@
 
   <script>
     let orderData = '', roomList = [], scannedRooms = new Set();
+    let currentRoom = '';
     const webhookURL = 'https://hook.integrator.boost.space/erots3p6ehh18tm6yfxmpgxoth6sadfc';
 
     function showPage(id) {
@@ -69,11 +76,18 @@
       orderData = '';
       roomList = [];
       scannedRooms = new Set();
+      currentRoom = '';
       document.getElementById('qr-reader-order').innerHTML = '';
       document.getElementById('qr-reader-key').innerHTML = '';
       document.getElementById('room-buttons').innerHTML = '';
       document.getElementById('error-box').innerText = '';
       showPage('page-scan-order');
+    }
+
+    function backToRooms() {
+      document.getElementById('qr-reader-key').innerHTML = '';
+      document.getElementById('error-box').innerText = '';
+      showPage('page-multi-room');
     }
 
     function startOrderScan() {
@@ -112,13 +126,18 @@
         const btn = document.createElement('button');
         btn.innerText = room;
         btn.className = 'secondary-btn room-btn';
-        btn.onclick = () => handleRoomScan(room, btn);
+        btn.onclick = () => {
+          if (scannedRooms.has(room)) return;
+          currentRoom = room;
+          document.getElementById('scan-key-title').innerText = `סרוק מפתח לחדר ${room}`;
+          showPage('page-scan-key');
+          startKeyScan();
+        };
         container.appendChild(btn);
       });
     }
 
-    function handleRoomScan(room, buttonEl) {
-      if (scannedRooms.has(room)) return;
+    function startKeyScan() {
       document.getElementById('qr-reader-key').innerHTML = '';
       document.getElementById('error-box').innerText = '';
       const scanner = new Html5Qrcode("qr-reader-key");
@@ -126,22 +145,27 @@
         text => {
           scanner.stop();
           const scannedText = text.trim();
-          if (scannedText !== room) {
-            document.getElementById('error-box').innerText = `מפתח לא תואם לחדר ${room}, נסה שוב.`;
-            document.getElementById('qr-reader-key').innerHTML = '';
+          if (scannedText !== currentRoom) {
+            document.getElementById('error-box').innerText = `מפתח לא תואם לחדר ${currentRoom}, נסה שוב.`;
             return;
           }
-          sendWebhook({ order: orderData, room: room, key: scannedText }, () => {
-            document.getElementById('error-box').innerText = `שגיאה: חדר ${room}`;
+          sendWebhook({ order: orderData, room: currentRoom, key: scannedText }, () => {
+            document.getElementById('error-box').innerText = `שגיאה: חדר ${currentRoom}`;
           }, () => {
-            scannedRooms.add(room);
-            buttonEl.disabled = true;
-            buttonEl.innerText = `✅ ${room}`;
-            buttonEl.className = 'done-btn room-btn';
-            document.getElementById('qr-reader-key').innerHTML = '';
+            scannedRooms.add(currentRoom);
+            const buttons = document.querySelectorAll('.room-btn');
+            buttons.forEach(btn => {
+              if (btn.innerText === currentRoom) {
+                btn.disabled = true;
+                btn.innerText = `✅ ${currentRoom}`;
+                btn.className = 'done-btn room-btn';
+              }
+            });
             if (scannedRooms.size === roomList.length) {
               showPage('page-done');
               setTimeout(goHome, 3000);
+            } else {
+              backToRooms();
             }
           });
         });
