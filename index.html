@@ -83,8 +83,6 @@
 </head>
 <body>
   <div class="container">
-
-    <!-- Сканирование заказа -->
     <div id="page-scan-order" class="visible">
       <h1>Сканирование штрихкода заказа</h1>
       <h2>Пожалуйста, отсканируйте штрихкод с заказа</h2>
@@ -95,7 +93,6 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- Загрузка -->
     <div id="page-loading" class="hidden">
       <h1>Загрузка данных...</h1>
       <div class="loader"></div>
@@ -103,7 +100,6 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- Результат номера комнаты -->
     <div id="page-room-result" class="hidden">
       <h1>Ключ от комнаты</h1>
       <div class="result-box">
@@ -113,7 +109,6 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- Сканирование ключа -->
     <div id="page-scan-key" class="hidden">
       <h1>Сканирование ключа</h1>
       <h2>Пожалуйста, отсканируйте штрихкод с ключа</h2>
@@ -123,14 +118,12 @@
       <button class="danger-btn" onclick="goHome()">⬅ Назад на главную</button>
     </div>
 
-    <!-- Завершено -->
     <div id="page-done" class="hidden">
       <h1 style="color:#43a047; font-size:2em;">✅</h1>
       <div class="result-box">Процесс успешно завершен!</div>
       <p style="color:#555;">Вы будете перенаправлены на главную через несколько секунд...</p>
       <button class="danger-btn" onclick="goHome()">⬅ Вернуться сейчас</button>
     </div>
-
   </div>
 
   <script>
@@ -144,15 +137,20 @@
 
     function goHome() {
       orderData = keyData = receivedId = '';
-      localStorage.clear(); sessionStorage.clear();
-      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {}
+      if ('caches' in window) {
+        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+      }
       document.getElementById('qr-reader-order').innerHTML = '';
       showPage('page-scan-order');
     }
 
     function startOrderScan() {
       const scanner = new Html5Qrcode("qr-reader-order");
-      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
         text => {
           scanner.stop();
           orderData = text;
@@ -164,7 +162,7 @@
       showPage('page-scan-key');
       const scanner = new Html5Qrcode("qr-reader-key");
       receivedId = localStorage.getItem('last-id') || receivedId;
-      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
         text => {
           scanner.stop();
           keyData = text;
@@ -194,23 +192,21 @@
             showPage('page-done');
             setTimeout(goHome, 3000);
           } else {
-            document.getElementById('error-box').innerText = '202 ללא נתונים צפויים';
+            document.getElementById('error-box').innerText = '202 без ожидаемых данных';
           }
         } else {
-          document.getElementById('error-box').innerText = `\u05e9\u05d2\u05d9\u05d0\u05d4: ${res.status}\n${body}`;
+          document.getElementById('error-box').innerText = `Ошибка: ${res.status}\n${body}`;
         }
       }).catch(err => {
-        document.getElementById('error-box').innerText = 'שגיאה: ' + err;
+        document.getElementById('error-box').innerText = 'Ошибка: ' + err;
       });
     }
 
     window.onload = () => {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js?v=2');
+        navigator.serviceWorker.register('service-worker.js?v=3');
       }
-      localStorage.clear(); sessionStorage.clear();
-      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-      showPage('page-scan-order');
+      goHome();
       startOrderScan();
     }
   </script>
